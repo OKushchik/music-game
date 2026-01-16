@@ -30,7 +30,6 @@ export const registerAPI = async (obj: UserRegister) => {
 
 export const logoutAPI = async () => {
   try {
-    document.cookie = 'access_token=; path=/; max-age=0';
     const { data } = await $host.post('auth/logout', {}, { withCredentials: true });
     return data;
   } catch (err: any) {

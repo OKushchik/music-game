@@ -40,20 +40,10 @@ const deleteRefreshToken = async (userId) => {
   }
 };
 
-const deleteAllUserSessions = async (userId) => {
-  try {
-    await RefreshToken.deleteMany({ userId });
-    return true;
-  } catch (err) {
-    console.error('Error deleting user sessions:', err);
-    return false;
-  }
-};
 
 module.exports = {
   saveRefreshToken,
   getRefreshToken,
-  deleteRefreshToken,
-  deleteAllUserSessions,
+  deleteRefreshToken
 };
 

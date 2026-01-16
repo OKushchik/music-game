@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import {deleteSongAPI, getAllSongsAPI} from "@/src/services/songsApi";
+import {deleteSongAPI, getAllSongsAPI} from "@/src/services/api/songsApi";
 import { deleteSongAction } from "@/src/store/slices/songsSlice";
 import {useDispatch} from "react-redux";
 import {AppDispatch} from "@/src/store/store";

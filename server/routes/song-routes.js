@@ -8,7 +8,7 @@ const {
   getSingleSongById
 } = require("../controllers/song-controller");
 
-const { requireAdmin } = require('../utils/middleware');
+const { requireAdmin, authGuard} = require('../utils/middleware');
 
 const router = express.Router();
 

@@ -94,7 +94,7 @@ cd clientnew
 npm install
 
 # Create .env.local file
-echo "NEXT_PUBLIC_APP_API_URL=http://localhost:8080" > .env.local
+echo "NEXT_PUBLIC_APP_API_URL=http://localhost:8080" > .env
 
 # Start development server
 npm run dev

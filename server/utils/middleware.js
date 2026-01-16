@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const { getRefreshToken } = require("../services/./refreshTokenService");
+const { getRefreshToken } = require("../services/refreshTokenService");
 
 const authGuard = (req, res, next) => {
   const token = req.cookies?.access_token;
@@ -23,6 +23,18 @@ const authGuard = (req, res, next) => {
 
 const refreshGuard = async (req, res, next) => {
   try {
+    const accessToken = req.cookies?.access_token;
+
+    if (accessToken) {
+      try {
+        const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
+        req.user = decoded;
+        return next();
+      } catch (err) {
+        console.error('Access token verification failed:', err.message);
+      }
+    }
+
     const userId = req.body?.userId || req.user?.id || req.user?._id;
 
     if (!userId) {
@@ -31,18 +43,19 @@ const refreshGuard = async (req, res, next) => {
 
     const storedToken = await getRefreshToken(userId.toString());
     if (!storedToken) {
-      return res.status(401).json({ success: false, message: 'Refresh token expired', data: {} });
+      return res.status(401).json({ success: false, message: 'Refresh token expired or not found', data: {} });
     }
 
     req.user = { id: userId };
     next();
   } catch (err) {
-    console.error(err);
+    console.error('refreshGuard error:', err.message);
     return res.status(401).json({ success: false, message: 'Invalid refresh token', data: {} });
   }
 };
 
 const requireAdmin = (req, res, next) => {
+  console.log('requireAdmin - req.user:', req.user);
   if (!req.user) {
     return res.status(401).json({ success: false, message: 'Unauthorized', data: {} });
   }

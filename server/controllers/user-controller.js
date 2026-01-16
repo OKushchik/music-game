@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const { generateAccessToken, generateRefreshToken } = require("../utils/generateToken");
-const { saveRefreshToken, getRefreshToken, deleteRefreshToken } = require("../services/./refreshTokenService");
+const { saveRefreshToken, getRefreshToken, deleteRefreshToken } = require("../services/refreshTokenService");
 
 const cookieOptions = (req) => {
   const isProd = process.env.NODE_ENV === 'production';
@@ -59,21 +59,19 @@ const registerUser = async (req, res) => {
       role: assignedRole,
     });
 
-    // Генеруємо access token (коротко-живий)
+    const userId = newUser?.userId || newUser?.id || newUser?._id;
+
     const accessToken = generateAccessToken(newUser);
+    const refreshToken = generateRefreshToken(userId);
+    await saveRefreshToken(userId.toString(), refreshToken);
 
-    // Генеруємо refresh token та зберігаємо в Redis
-    const refreshToken = generateRefreshToken(newUser._id);
-    await saveRefreshToken(newUser._id.toString(), refreshToken);
-
-    // Встановлюємо ЛИШЕ access_token у HttpOnly cookie
     res.cookie("access_token", accessToken, cookieOptions(req));
 
     return res.status(201).json({
       success: true,
       message: "User registered successfully",
       data: {
-        id: newUser._id,
+        id: userId,
         fullName: newUser.fullName,
         email: newUser.email,
         avatarUrl: newUser.avatarUrl || null,
@@ -128,21 +126,22 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Генеруємо access token (коротко-живий)
     const accessToken = generateAccessToken(user);
 
-    // Генеруємо refresh token та зберігаємо в Redis
-    const refreshToken = generateRefreshToken(user._id);
-    await saveRefreshToken(user._id.toString(), refreshToken);
 
-    // Встановлюємо ЛИШЕ access_token у HttpOnly cookie
+    const userId = user?.userId || user?.id || user?._id;
+
+    const refreshToken = generateRefreshToken(userId);
+    console.log('Generated refresh token:', refreshToken);
+    await saveRefreshToken(userId.toString(), refreshToken);
+
     res.cookie("access_token", accessToken, cookieOptions(req));
 
     return res.status(200).json({
       success: true,
       message: "Login successful",
       data: {
-        id: user._id,
+        id: userId,
         fullName: user.fullName,
         email: user.email,
         role: user.role,
@@ -160,16 +159,28 @@ const loginUser = async (req, res) => {
 
 const logoutUser = async (req, res) => {
   try {
-    res.clearCookie('access_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', path: '/' });
-
-    if (req.user?.id || req.user?._id) {
-      const userId = req.user.id || req.user._id;
-      await deleteRefreshToken(userId.toString());
+    const token = req.cookies?.access_token;
+    if (token && process.env.JWT_SECRET) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const userId = decoded?.userId || decoded?.id || decoded?._id;
+        if (userId) {
+          await deleteRefreshToken(userId.toString());
+        }
+      } catch (err) {
+        console.error('Token verification in logout:', err.message);
+      }
     }
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
+    });
 
     return res.status(200).json({ success: true, message: 'Logged out', data: {} });
   } catch (e) {
-    console.error(e);
+    console.error('Logout error:', e);
     return res.status(500).json({ success: false, message: 'Logout failed', data: {} });
   }
 };
