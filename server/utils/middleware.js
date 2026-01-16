@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const { getRefreshToken } = require("../services/refreshTokenService");
+const { getRefreshToken } = require("../controllers/refreshToken-controller");
 
 const authGuard = (req, res, next) => {
   const token = req.cookies?.access_token;

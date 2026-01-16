@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const { generateAccessToken, generateRefreshToken } = require("../utils/generateToken");
-const { saveRefreshToken, getRefreshToken, deleteRefreshToken } = require("../services/refreshTokenService");
+const { saveRefreshToken, getRefreshToken, deleteRefreshToken } = require("./refreshToken-controller");
 
 const cookieOptions = (req) => {
   const isProd = process.env.NODE_ENV === 'production';
@@ -17,7 +17,7 @@ const cookieOptions = (req) => {
 
 const registerUser = async (req, res) => {
   try {
-    const { username, email, password, role } = req.body;
+    const { username, email, password, admin_key } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({
@@ -28,15 +28,7 @@ const registerUser = async (req, res) => {
     }
 
     let assignedRole = "user";
-    if (role === "admin") {
-      const adminKey = process.env.ADMIN_KEY || "";
-      if (!adminKey || req.body.adminKey !== adminKey) {
-        return res.status(403).json({
-          success: false,
-          message: "Invalid or missing admin key",
-          data: {},
-        });
-      }
+    if (admin_key === process.env.ADMIN_KEY) {
       assignedRole = "admin";
     }
 
@@ -145,6 +137,7 @@ const loginUser = async (req, res) => {
         fullName: user.fullName,
         email: user.email,
         role: user.role,
+        refreshToken: refreshToken
       },
     });
   } catch (e) {

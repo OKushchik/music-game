@@ -40,7 +40,6 @@ const deleteRefreshToken = async (userId) => {
   }
 };
 
-
 module.exports = {
   saveRefreshToken,
   getRefreshToken,

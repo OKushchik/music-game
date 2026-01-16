@@ -9,6 +9,6 @@ router.post("/login", loginUser);
 router.post("/register", registerUser);
 router.post("/logout", logoutUser);
 router.get('/me', authGuard, getCurrentUser);
-router.post("/refresh", refreshGuard, refreshAccessToken);
+router.post("/refresh", refreshAccessToken);
 
 module.exports = router;
