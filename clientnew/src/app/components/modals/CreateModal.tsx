@@ -1,7 +1,9 @@
 import React, {useState} from 'react';
 import {Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField} from "@mui/material";
-import {useAddSong} from "@/src/services/SongsApiHooks/useAddSong";
+import {addSong} from "@/src/store/slices/songsSlice";
 import {Song} from "@/src/models/models";
+import {useDispatch, useSelector} from "react-redux";
+import {AppDispatch, RootState} from "@/src/store/store";
 
 interface CreateModalProps {
   isOpen: boolean;
@@ -10,7 +12,8 @@ interface CreateModalProps {
 
 
 const CreateModal: React.FC<CreateModalProps> =({isOpen, setIsOpen}) => {
-  const {addSong} = useAddSong()
+  const dispatch = useDispatch<AppDispatch>();
+  const loading = useSelector((state: RootState) => state.songs.loading);
   const [formData, setFormData] = useState<Song>({
     title:'',
     year: 1990,
@@ -20,7 +23,7 @@ const CreateModal: React.FC<CreateModalProps> =({isOpen, setIsOpen}) => {
   function submitForm(e: React.FormEvent) {
     e.preventDefault()
     console.log(formData)
-    addSong(formData).then(()=>{
+    dispatch(addSong(formData)).then(()=>{
       setFormData({
         title:'',
         year: 1990,

@@ -21,7 +21,9 @@ export const fetchCurrentUser = createAsyncThunk('auth/fetchCurrentUser', async 
 export const login = createAsyncThunk('auth/login', async (payload: { email: string; password: string }, { rejectWithValue }) => {
   try {
     const data = await loginAPI(payload as any);
-    return data.data;
+    const { refreshToken, ...user } = data.data;
+    localStorage.setItem("refresh_token", refreshToken);
+    return user;
   } catch (err: any) {
     return rejectWithValue(err.response?.data || err.message);
   }
@@ -30,7 +32,9 @@ export const login = createAsyncThunk('auth/login', async (payload: { email: str
 export const register = createAsyncThunk('auth/register', async (payload: any, { rejectWithValue }) => {
   try {
     const data = await registerAPI(payload);
-    return data.data;
+    const { refreshToken, ...user } = data.data;
+    localStorage.setItem("refresh_token", refreshToken);
+    return user;
   } catch (err: any) {
     return rejectWithValue(err.response?.data || err.message);
   }
@@ -38,9 +42,12 @@ export const register = createAsyncThunk('auth/register', async (payload: any, {
 
 export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValue }) => {
   try {
+    localStorage.removeItem('refresh_token');
+    console.log('Removed refresh token from localStorage');
     const data = await logoutAPI();
     return data;
   } catch (err: any) {
+    localStorage.removeItem('refresh_token');
     return rejectWithValue(err.response?.data || err.message);
   }
 });
@@ -78,7 +85,8 @@ const authSlice = createSlice({
         state.isInitialized = true;
       })
       .addCase(fetchCurrentUser.rejected, (state) => {
-        state.loading = false; state.user = null;
+        state.loading = false;
+        state.user = null;
         state.isInitialized = true;
       })
 ///////////
@@ -86,10 +94,12 @@ const authSlice = createSlice({
         state.loading = true;
       })
       .addCase(login.fulfilled, (state, action) => {
-        state.loading = false; state.user = action.payload;
+        state.loading = false;
+        state.user = action.payload;
       })
       .addCase(login.rejected, (state, action) => {
-        state.loading = false; state.error = action.payload;
+        state.loading = false;
+        state.error = action.payload;
       })
 ///////////
       .addCase(register.pending, (state) => {

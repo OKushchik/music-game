@@ -15,17 +15,21 @@ import MenuItem from '@mui/material/MenuItem';
 import AdbIcon from '@mui/icons-material/Adb';
 import { logoutAPI } from "@/src/services/api/authApi";
 import { useRouter } from "next/navigation";
+import {login, logout} from "@/src/store/slices/authSlice";
+import {useDispatch} from "react-redux";
+import type {AppDispatch} from "@/src/store/store";
 
 const pages = ['Home', 'Players', 'Ratings'];
 
 function AsideBar() {
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
+  const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
 
   const handleLogout = async () => {
     try {
-      await logoutAPI();
+      await dispatch(logout()).unwrap();
       router.push('/login');
     } catch (err) {
       console.error('Logout failed:', err);

@@ -1,6 +1,8 @@
-const Song = require("../models/song");
+import { Request, Response } from "express";
+import Song from "../models/song";
 
-const getAllSongs = async (req, res) => {
+
+export const getAllSongs = async (req: Request, res: Response): Promise<void> => {
   try {
     const allSongs = await Song.find({});
     if (allSongs?.length > 0) {
@@ -8,34 +10,40 @@ const getAllSongs = async (req, res) => {
         success: true,
         message: "List of Songs fetched successfully",
         data: allSongs,
-        user: req.user || {}
+        user: req.user || {},
       });
     } else {
       res.status(404).json({
         success: false,
         message: "No Songs found in collection",
-        data: []
+        data: [],
       });
     }
   } catch (e) {
     res.status(500).json({
       success: false,
       message: "Something went wrong! Please try again",
-      data: []
+      data: [],
     });
   }
 };
-const getSingleSongById = async (req, res) => {
+
+export const getSingleSongById = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const getCurrentSongId = req.params.id;
     const songDetailsByID = await Song.findById(getCurrentSongId);
 
     if (!songDetailsByID) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         data: {},
-        message: "Song with the current ID is not found! Please try with a different ID",
+        message:
+          "Song with the current ID is not found! Please try with a different ID",
       });
+      return;
     }
 
     res.status(200).json({
@@ -48,11 +56,12 @@ const getSingleSongById = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Something went wrong! Please try again",
-      data: {}
+      data: {},
     });
   }
 };
-const addNewSong = async (req, res) => {
+
+export const addNewSong = async (req: Request, res: Response): Promise<void> => {
   try {
     const newSongData = req.body;
     const newlyCreatedSong = await Song.create(newSongData);
@@ -68,11 +77,12 @@ const addNewSong = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Something went wrong! Please try again",
-      data: {}
+      data: {},
     });
   }
 };
-const updateSong = async (req, res) => {
+
+export const updateSong = async (req: Request, res: Response): Promise<void> => {
   try {
     const updatedSongData = req.body;
     const getCurrentSongId = req.params.id;
@@ -85,11 +95,12 @@ const updateSong = async (req, res) => {
     );
 
     if (!updatedSong) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "Song is not found with this ID",
-        data: {}
+        data: {},
       });
+      return;
     }
 
     res.status(200).json({
@@ -102,21 +113,23 @@ const updateSong = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Something went wrong! Please try again",
-      data: {}
+      data: {},
     });
   }
 };
-const deleteSong = async (req, res) => {
+
+export const deleteSong = async (req: Request, res: Response): Promise<void> => {
   try {
     const getCurrentSongId = req.params.id;
     const deletedSong = await Song.findByIdAndDelete(getCurrentSongId);
 
     if (!deletedSong) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "Song is not found with this ID",
-        data: {}
+        data: {},
       });
+      return;
     }
 
     res.status(200).json({
@@ -129,27 +142,34 @@ const deleteSong = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Something went wrong! Please try again",
-      data: {}
+      data: {},
     });
   }
 };
-const deleteManySongs = async (req, res) => {
 
+export const deleteManySongs = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const ids = req.body.data.ids;
 
     if (!Array.isArray(ids)) {
-      return res.status(400).json({ success: false, message: ids });
+      res.status(400).json({ success: false, message: ids });
+      return;
     }
 
-    const deletedSongs = await Song.deleteMany({ _id: { $in: ids } }).catch((error) => console.log(error))
+    const deletedSongs = await Song.deleteMany({
+      _id: { $in: ids },
+    }).catch((error) => console.log(error));
 
     if (!deletedSongs) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "Songs are not found",
-        data: []
+        data: [],
       });
+      return;
     }
 
     res.status(200).json({
@@ -157,18 +177,13 @@ const deleteManySongs = async (req, res) => {
       message: "Songs deleted",
       data: deletedSongs,
     });
-
   } catch (error) {
-    console.error('Error deleting songs:', error);
-    res.status(500).json({ success: false, message: 'Server error', data: [] });
+    console.error("Error deleting songs:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      data: [],
+    });
   }
-}
-
-module.exports = {
-  getAllSongs,
-  getSingleSongById,
-  addNewSong,
-  updateSong,
-  deleteSong,
-  deleteManySongs
 };
+

@@ -1,19 +1,17 @@
-const express = require("express");
-const {
+import express, { Router } from "express";
+import {
   getAllSongs,
   addNewSong,
   updateSong,
   deleteSong,
   deleteManySongs,
-  getSingleSongById
-} = require("../controllers/song-controller");
+  getSingleSongById,
+} from "../controllers/song-controller";
+import { requireAdmin, authGuard } from "../utils/middleware";
 
-const { requireAdmin, authGuard} = require('../utils/middleware');
+const router: Router = express.Router();
 
-const router = express.Router();
-
-
-// start with route => /SongsApiHooks/songs
+// start with route => /songs
 router.get("/get", getAllSongs);
 router.get("/get/:id", getSingleSongById);
 router.post("/add", addNewSong);
@@ -21,4 +19,5 @@ router.put("/update/:id", updateSong);
 router.delete("/delete/:id", requireAdmin, deleteSong);
 router.delete("/delete-many", requireAdmin, deleteManySongs);
 
-module.exports = router;
+export default router;
+

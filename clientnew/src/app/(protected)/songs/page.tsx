@@ -3,28 +3,27 @@
 import * as React from 'react';
 import Paper from '@mui/material/Paper';
 import styles from "./page.module.css";
-import {useGetAllSongs} from "@/src/services/SongsApiHooks/useGetAllSongs"
+import {fetchAllSongs, deleteSong} from "@/src/store/slices/songsSlice"
 import {DataGrid, GridColDef, GridRowSelectionModel, useGridApiRef} from '@mui/x-data-grid';
 import {Button} from "@mui/material";
 import {useEffect, useState} from "react";
 import CreateModal from "@/src/app/components/modals/CreateModal";
-import {useDeleteSong} from "@/src/services/SongsApiHooks/useDeleteSong";
-import {useSelector} from "react-redux";
-import {RootState} from "@/src/store/store";
+import {useDispatch, useSelector} from "react-redux";
+import {RootState, AppDispatch} from "@/src/store/store";
 
 
 const paginationModel = { page: 0, pageSize: 5 };
 
 export default function SongsPage() {
   const allSongsArray = useSelector((state: RootState) => state.songs.songs);
-  const { fetchAllSongs } = useGetAllSongs();
-  const { deleteSong, loading } = useDeleteSong();
+  const loading = useSelector((state: RootState) => state.songs.loading);
+  const dispatch = useDispatch<AppDispatch>();
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
 
   useEffect(() => {
-    fetchAllSongs().catch((err)=>console.log(err));
-  }, []);
+    dispatch(fetchAllSongs());
+  }, [dispatch]);
 
   const columns: GridColDef[] = [
     { field: 'title', headerName: 'title', width: 130 },
@@ -51,9 +50,9 @@ export default function SongsPage() {
         <Button
           variant="outlined"
           color="error"
-          disabled = {loading}
+          disabled={loading}
           onClick={() => {
-            deleteSong(String(params.id)).catch((err)=>console.log(err));
+            dispatch(deleteSong(String(params.id)));
           }}
         >
           Remove

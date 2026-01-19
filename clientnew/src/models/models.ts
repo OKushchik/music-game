@@ -15,6 +15,7 @@ export interface User {
   email: string;
   role: 'user' | 'admin';
   avatarUrl?: string;
+  refreshToken?: string;
 }
 
 export interface Song {
