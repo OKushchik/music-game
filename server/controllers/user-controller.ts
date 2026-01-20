@@ -180,6 +180,18 @@ export const getCurrentUser = async (req: Request, res: Response, next: NextFunc
   }
 };
 
+export const getAllUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const users = await User.find().select("-passwordHash");
+    res.status(200).json({
+      success: true,
+      message: "All users",
+      data: users,
+    });
+  } catch (e: any) {
+    return next(e);
+  }
+}
 export const refreshAccessToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { refreshToken } = req.body;

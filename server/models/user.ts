@@ -29,6 +29,7 @@ const UserSchema = new Schema<IUser>(
     },
     avatarUrl: {
       type: String,
+      default: null,
     },
     role: {
       type: String,

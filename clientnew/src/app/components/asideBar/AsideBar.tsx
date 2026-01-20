@@ -1,5 +1,6 @@
 'use client'
 import * as React from 'react';
+import { useSelector } from 'react-redux';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -13,23 +14,27 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import AdbIcon from '@mui/icons-material/Adb';
-import { logoutAPI } from "@/src/services/api/authApi";
 import { useRouter } from "next/navigation";
-import {login, logout} from "@/src/store/slices/authSlice";
+import { logout } from "@/src/store/slices/authSlice";
+import { clearGamePlayers } from "@/src/store/slices/gameSlice";
 import {useDispatch} from "react-redux";
-import type {AppDispatch} from "@/src/store/store";
-
-const pages = ['Home', 'Players', 'Ratings'];
+import {AppDispatch, RootState} from "@/src/store/store";
+import {useEffect, useState} from "react";
 
 function AsideBar() {
+  const players = useSelector((state: RootState) => state.game.players);
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => setIsMounted(true), []);
 
   const handleLogout = async () => {
     try {
       await dispatch(logout()).unwrap();
+      dispatch(clearGamePlayers());
       router.push('/login');
     } catch (err) {
       console.error('Logout failed:', err);
@@ -117,6 +122,13 @@ function AsideBar() {
               <MenuItem key={'songs'} onClick={handleCloseNavMenu}>
                 <Typography sx={{ textAlign: 'center' }}>Songs</Typography>
               </MenuItem>
+              {
+                isMounted && players.length > 0 && (
+                  <MenuItem key={'room'} onClick={() => handleNavMenu('/game/room')}>
+                  <Typography sx={{ textAlign: 'center' }}>Active Room</Typography>
+                </MenuItem>
+                )
+              }
             </Menu>
           </Box>
           <AdbIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }} />
@@ -167,6 +179,13 @@ function AsideBar() {
             >
               Songs
             </Button>
+            {
+              isMounted && players.length > 0 && (
+                <Button key={'room'} onClick={() => handleNavMenu('/game/room')}>
+                  <Typography sx={{ textAlign: 'center' }}>Active Room</Typography>
+                </Button>
+              )
+            }
           </Box>
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Open settings">

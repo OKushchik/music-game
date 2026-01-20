@@ -10,7 +10,8 @@ export interface UserRegister extends UserLogin {
 }
 
 export interface User {
-  id: string;
+  id?: string;
+  _id?: string;
   fullName: string;
   email: string;
   role: 'user' | 'admin';
@@ -48,6 +49,12 @@ export interface IAuthResponse {
   success: boolean;
   message: string;
   data: User;
+}
+
+export interface IResponseAllUsers {
+  success: boolean;
+  message: string;
+  data: User[];
 }
 
 export const formTypes = {

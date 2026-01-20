@@ -5,11 +5,6 @@ export const $host = axios.create({
   withCredentials: true,
 });
 
-// const $refresh = axios.create({
-//   baseURL: process.env.NEXT_PUBLIC_APP_API_URL,
-//   withCredentials: true,
-// });
-
 $host.interceptors.response.use(
   (res) => res,
   async (error) => {
@@ -32,6 +27,7 @@ $host.interceptors.response.use(
         } catch {
           document.cookie = 'access_token=; path=/; max-age=0';
           localStorage.removeItem('refresh_token');
+          localStorage.removeItem('app_state');
           return Promise.reject(error);
         }
       }

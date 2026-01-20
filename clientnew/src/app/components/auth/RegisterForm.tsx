@@ -36,7 +36,7 @@ export const RegisterForm: React.FC = () => {
       return;
     }
     try {
-      await dispatch(register({ username: name, email, password, admin_key: adminKey })).unwrap();
+      await dispatch(register({ username: name, email, password, admin_key: adminKey, avatarUrl: '' })).unwrap();
       router.push('/');
     } catch (err) {
       console.error(err);

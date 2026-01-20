@@ -1,13 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import {loginAPI, registerAPI, logoutAPI, getCurrentUser} from '@/src/services/api/authApi';
-import { $host } from '@/src/services/index';
-
-export interface IUser {
-  id?: string;
-  fullName?: string;
-  email?: string;
-  role?: string;
-}
+import {User} from "@/src/models/models";
 
 export const fetchCurrentUser = createAsyncThunk('auth/fetchCurrentUser', async (_, { rejectWithValue }) => {
   try {
@@ -32,6 +25,7 @@ export const login = createAsyncThunk('auth/login', async (payload: { email: str
 export const register = createAsyncThunk('auth/register', async (payload: any, { rejectWithValue }) => {
   try {
     const data = await registerAPI(payload);
+    console.log('Registration data:', data);
     const { refreshToken, ...user } = data.data;
     localStorage.setItem("refresh_token", refreshToken);
     return user;
@@ -43,17 +37,18 @@ export const register = createAsyncThunk('auth/register', async (payload: any, {
 export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValue }) => {
   try {
     localStorage.removeItem('refresh_token');
-    console.log('Removed refresh token from localStorage');
-    const data = await logoutAPI();
-    return data;
+    localStorage.removeItem('app_state');
+    await logoutAPI();
+    return null;
   } catch (err: any) {
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('app_state');
     return rejectWithValue(err.response?.data || err.message);
   }
 });
 
 interface AuthState {
-  user: IUser | null;
+  user: User | null;
   loading: boolean;
   isInitialized: boolean,
   error?: any;
@@ -71,6 +66,11 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     clearError(state) {
+      state.error = null;
+    },
+    clearAllState(state) {
+      state.user = null;
+      state.loading = false;
       state.error = null;
     }
   },
@@ -114,9 +114,11 @@ const authSlice = createSlice({
 ///////////
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
+        state.loading = false;
+        state.error = null;
       })
   }
 });
 
-export const { clearError } = authSlice.actions;
+export const { clearError, clearAllState } = authSlice.actions;
 export default authSlice.reducer;

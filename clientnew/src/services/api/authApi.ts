@@ -19,6 +19,15 @@ export const getCurrentUser = async () => {
   }
 }
 
+export const getAllUsers = async () => {
+  try {
+    const { data } = await $host.get('auth/get-all-users', { withCredentials: true });
+    return data;
+  } catch (err: any) {
+    throw err;
+  }
+}
+
 export const registerAPI = async (obj: UserRegister) => {
   try {
     const { data } = await $host.post('auth/register', { ...obj }, { withCredentials: true });
