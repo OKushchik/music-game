@@ -7,6 +7,7 @@ import {
   refreshAccessToken,
 } from "../controllers/user-controller";
 import { authGuard } from "../utils/middleware";
+import { AppError } from "../utils/errorMiddleware";
 
 const router: Router = express.Router();
 
@@ -18,4 +19,3 @@ router.get("/me", authGuard, getCurrentUser);
 router.post("/refresh", refreshAccessToken);
 
 export default router;
-

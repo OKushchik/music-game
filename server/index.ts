@@ -1,9 +1,11 @@
-import "dotenv/config";import "./tsModels/express";
-import express, { Express } from "express";
+import "dotenv/config";
+import "./tsModels/express";
+import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import connectToDB from "./database/db";
+import errorHandler from "./utils/errorMiddleware";
 import songRoutes from "./routes/song-routes";
 import spotifyRoutes from "./routes/spotify-routes";
 import authRoutes from "./routes/auth-routes";
@@ -28,8 +30,12 @@ app.use("/songs", authGuard, songRoutes);
 app.use("/spotify", spotifyRoutes);
 app.use("/auth", authRoutes);
 
+app.use(errorHandler);
+
 app.listen(PORT, () => {
   console.log(`Server is now running on port ${PORT}`);
 });
 
-connectToDB().then(r => console.log("Connected to DB")).catch(e => console.log("DB connection error:", e));
+connectToDB()
+  .then(() => console.log("Connected to DB"))
+  .catch((e) => console.log("DB connection error:", e));

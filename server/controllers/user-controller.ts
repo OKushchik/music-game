@@ -1,10 +1,11 @@
-import {Request, Response} from "express";
+import {Request, Response, NextFunction} from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/user";
 import {generateAccessToken, generateRefreshToken} from "../utils/generateToken";
 import {deleteRefreshToken, getRefreshToken, saveRefreshToken,} from "./refreshToken-controller";
 import {Role} from "../tsModels/enums";
+import {AppError} from "../utils/errorMiddleware";
 
 interface CookieOptions {
   httpOnly: boolean;
@@ -14,7 +15,7 @@ interface CookieOptions {
   maxAge: number;
 }
 
-const cookieOptions = (req: Request): CookieOptions => {
+const cookieOptions = (_req: Request): CookieOptions => {
   const isProd = process.env.NODE_ENV === "production";
   return {
     httpOnly: true,
@@ -25,17 +26,12 @@ const cookieOptions = (req: Request): CookieOptions => {
   };
 };
 
-export const registerUser = async (req: Request, res: Response): Promise<void> => {
+export const registerUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { username, email, password, admin_key } = req.body;
 
     if (!username || !email || !password) {
-      res.status(400).json({
-        success: false,
-        message: "username, email and password are required",
-        data: {},
-      });
-      return;
+      return next(new AppError("username, email and password are required", 400));
     }
 
     let assignedRole = Role.USER;
@@ -45,12 +41,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
 
     const existing = await User.findOne({ email });
     if (existing) {
-      res.status(409).json({
-        success: false,
-        message: "User with this email already exists",
-        data: {},
-      });
-      return;
+      return next(new AppError("User with this email already exists", 409));
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -89,58 +80,28 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       },
     });
   } catch (e: any) {
-    console.error(e);
-    if (e.name === "ValidationError") {
-      res.status(400).json({
-        success: false,
-        message: "Invalid user data",
-        data: e.errors,
-      });
-      return;
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Registration failed! Please try again",
-      data: {},
-    });
+    return next(e);
   }
 };
 
-export const loginUser = async (req: Request, res: Response): Promise<void> => {
+export const loginUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      res.status(400).json({
-        success: false,
-        message: "email and password are required",
-        data: {},
-      });
-      return;
+      return next(new AppError("email and password are required", 400));
     }
 
     const user = await User.findOne({ email });
-
     if (!user) {
-      res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-        data: {},
-      });
-      return;
+      return next(new AppError("Invalid email or password", 401));
     }
 
     const userId = user?.id?.toString() || user?._id?.toString();
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
-      res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-        data: {},
-      });
-      return;
+      return next(new AppError("Invalid email or password", 401));
     }
 
     const accessToken = generateAccessToken({
@@ -165,16 +126,11 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       },
     });
   } catch (e: any) {
-    console.error(e);
-    res.status(500).json({
-      success: false,
-      message: "Login failed! Please try again",
-      data: {},
-    });
+    return next(e);
   }
 };
 
-export const logoutUser = async (req: Request, res: Response): Promise<void> => {
+export const logoutUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const token = req.cookies?.access_token;
     if (token && process.env.JWT_SECRET) {
@@ -188,6 +144,7 @@ export const logoutUser = async (req: Request, res: Response): Promise<void> => 
         console.error("Token verification in logout:", err.message);
       }
     }
+
     res.clearCookie("access_token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -197,34 +154,20 @@ export const logoutUser = async (req: Request, res: Response): Promise<void> => 
 
     res.status(200).json({ success: true, message: "Logged out", data: {} });
   } catch (e: any) {
-    console.error("Logout error:", e);
-    res.status(500).json({
-      success: false,
-      message: "Logout failed",
-      data: {},
-    });
+    return next(new AppError("Logout failed", 500));
   }
 };
 
-export const getCurrentUser = async (req: Request, res: Response): Promise<void> => {
+export const getCurrentUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: "Unauthorized",
-        data: {},
-      });
-      return;
+      return next(new AppError("Unauthorized", 401));
     }
+
     const userId = req.user?.id?.toString() || req.user?._id?.toString();
     const user = await User.findById(userId).select("-passwordHash");
     if (!user) {
-      res.status(404).json({
-        success: false,
-        message: "User not found",
-        data: {},
-      });
-      return;
+      return next(new AppError("User not found", 404));
     }
 
     res.status(200).json({
@@ -233,59 +176,33 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
       data: user,
     });
   } catch (e: any) {
-    console.error(e);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get user",
-      data: {},
-    });
+    return next(e);
   }
 };
 
-export const refreshAccessToken = async (req: Request, res: Response): Promise<void> => {
+export const refreshAccessToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      res.status(400).json({
-        success: false,
-        message: "Refresh token is required",
-        data: {},
-      });
-      return;
+      return next(new AppError("Refresh token is required", 400));
     }
 
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as any;
-
     const userId = decoded?.id?.toString() || decoded?._id?.toString();
 
     if (!userId) {
-      res.status(401).json({
-        success: false,
-        message: "Invalid refresh token",
-        data: {},
-      });
-      return;
+      return next(new AppError("Invalid refresh token", 401));
     }
 
     const storedToken = await getRefreshToken(userId);
     if (!storedToken || storedToken !== refreshToken) {
-      res.status(401).json({
-        success: false,
-        message: "Refresh token expired or invalid",
-        data: {},
-      });
-      return;
+      return next(new AppError("Refresh token expired or invalid", 401));
     }
 
     const user = await User.findById(userId);
     if (!user) {
-      res.status(401).json({
-        success: false,
-        message: "User not found",
-        data: {},
-      });
-      return;
+      return next(new AppError("User not found", 401));
     }
 
     const newAccessToken = generateAccessToken({
@@ -301,12 +218,6 @@ export const refreshAccessToken = async (req: Request, res: Response): Promise<v
       data: {},
     });
   } catch (e: any) {
-    console.error(e);
-    res.status(401).json({
-      success: false,
-      message: "Failed to refresh token",
-      data: {},
-    });
+    return next(e);
   }
 };
-
