@@ -14,15 +14,9 @@ import {Chip} from "@mui/material";
 import { addYearForPlayer } from "@/src/store/slices/gameSlice";
 import { AppDispatch } from "@/src/store/store";
 import {YearValue} from "@/src/models/models";
+import {toMs} from "@/src/utils/helpers";
 
 type GapId = `gap-${number}`;
-
-
-
-function toMs(date: YearValue): number {
-  const ms = Date.parse(date);
-  return Number.isNaN(ms) ? 0 : ms;
-}
 
 function DraggableYear() {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -129,32 +123,35 @@ export default function SortibleList({
     const idx = Number(overId.replace("gap-", ""));
     if (Number.isNaN(idx)) return;
 
-    if (idx !== correctIndex) {
-      if(confirm('Wrong place! The year is actually "' + insertYear + '". do you agree?')){
-        setActivePlayerIndex((prev) => {
-          const nextIndex = prev + 1;
-          return nextIndex < players.length ? nextIndex : 0;
-        });
-      }
+    const isCorrect = idx === correctIndex;
 
+    const ok = isCorrect
+      ? confirm(`Correct! It is ${insertYear}. Year added.`)
+      : confirm(`Wrong place! The year is actually "${insertYear}". Do you agree?`);
+
+    if (!ok) return;
+
+    if(ok && !isCorrect) {
+      setActivePlayerIndex((prev) => {
+        const nextIndex = prev + 1;
+        return nextIndex < players.length ? nextIndex : 0;
+      });
       return;
     }
-
-    const next = [...years.slice(0, idx), insertYear, ...years.slice(idx)];
-    const nextSorted = [...next].sort((a, b) => toMs(a) - toMs(b));
-    setYears(nextSorted);
 
     const currentPlayer = players[activePlayerIndex];
     if (currentPlayer?.id) {
       dispatch(addYearForPlayer({ playerId: currentPlayer.id, year: insertYear }));
     }
 
-    if(confirm("Correct! It is " +insertYear+ " Year added.")){
-      setActivePlayerIndex((prev) => {
-        const nextIndex = prev + 1;
-        return nextIndex < players.length ? nextIndex : 0;
-      });
-    }
+    const next = [...years.slice(0, idx), insertYear, ...years.slice(idx)];
+    const nextSorted = [...next].sort((a, b) => toMs(a) - toMs(b));
+    setYears(nextSorted);
+
+    setActivePlayerIndex((prev) => {
+      const nextIndex = prev + 1;
+      return nextIndex < players.length ? nextIndex : 0;
+    });
   }
   return (
     <div style={{ display: "grid", gap: 16, padding: 16 }}>
