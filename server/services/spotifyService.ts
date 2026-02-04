@@ -53,15 +53,11 @@ async function spotifyFetch(endpoint: string): Promise<any> {
 }
 
 const SpotifyService = {
-  search: (query: string) =>
-    spotifyFetch(
-      `search?q=${encodeURIComponent(query)}&type=artist,track,album`
-    ),
+  search: (query: string) => spotifyFetch(`search?q=${encodeURIComponent(query)}&type=artist,track,album`),
   getArtist: (id: string) => spotifyFetch(`artists/${id}`),
-  getTopTracks: (id: string) =>
-    spotifyFetch(`artists/${id}/top-tracks?market=US`),
-  getAlbums: (id: string) =>
-    spotifyFetch(`artists/${id}/albums?include_groups=album,single&market=US`),
+  getTopTracks: (id: string) => spotifyFetch(`artists/${id}/top-tracks?market=US`),
+  getAlbums: (id: string) => spotifyFetch(`artists/${id}/albums?include_groups=album,single&market=US`),
+  getSpotifyPlaylist: (playlist: string) => spotifyFetch(`playlists/${playlist}`),
 };
 
 export default SpotifyService;

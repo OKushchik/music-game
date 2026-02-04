@@ -57,6 +57,8 @@ export interface IResponseAllUsers {
   data: User[];
 }
 
+export type YearValue = string;
+
 export const formTypes = {
   LOGIN: 'login',
   REGISTER: 'register',

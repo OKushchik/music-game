@@ -51,3 +51,16 @@ export const spotifyArtistAlbums = async (
   }
 };
 
+export const spotifyPlaylist = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const randomList = await SpotifyService.getSpotifyPlaylist(req.params.playlist);
+    res.json(randomList);
+  } catch (err) {
+    return next(err);
+  }
+};
+

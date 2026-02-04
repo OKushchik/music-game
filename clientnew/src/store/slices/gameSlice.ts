@@ -3,7 +3,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 export type GamePlayer = {
   id: string;
   fullName: string;
-  years: number[];
+  years: string[];
 };
 
 interface GameState {
@@ -28,18 +28,32 @@ export const gameSlice = createSlice({
     clearGamePlayers: (state) => {
       state.players = [];
     },
-    setYearsForPlayer: (state, action: PayloadAction<{ playerId: string; year: number }>) => {
+    initYearForPlayer: (
+      state,
+      action: PayloadAction<{ playerId: string; year: string }>
+    ) => {
       const { playerId, year } = action.payload;
       const player = state.players.find(p => p.id === playerId);
-      if (player) {
-        if (!player?.years.includes(year)) {
-          player.years.push(year);
-        }
+      if (!player) return;
+
+      if (player.years.length === 0) {
+        player.years.push(year);
       }
-    }
+    },
+    addYearForPlayer: (
+      state,
+      action: PayloadAction<{ playerId: string; year: string }>
+    ) => {
+      const { playerId, year } = action.payload;
+      const player = state.players.find(p => p.id === playerId);
+      if (!player) return;
+
+      if (!player.years.includes(year)) {
+        player.years.push(year);
+      }
+    },
   },
 });
 
-export const { setGamePlayers, clearGamePlayers, setYearsForPlayer } = gameSlice.actions;
+export const { setGamePlayers, clearGamePlayers, initYearForPlayer, addYearForPlayer } = gameSlice.actions;
 export default gameSlice.reducer;
-
