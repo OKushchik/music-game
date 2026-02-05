@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
 import {
   DndContext,
   DragEndEvent,
@@ -9,7 +10,7 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { useDispatch } from "react-redux";
+import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import {Chip} from "@mui/material";
 import { addYearForPlayer } from "@/src/store/slices/gameSlice";
 import { AppDispatch } from "@/src/store/store";
@@ -33,10 +34,17 @@ function DraggableYear() {
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
       <Chip
-        label="???"
+        label=<QuestionMarkIcon/>
         sx={{
           mr: 1,
           mb: 1,
+          width: '50px',
+          height: '50px',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '1.2rem',
         }}
       />
     </div>

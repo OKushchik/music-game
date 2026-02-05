@@ -1,13 +1,14 @@
-import React from "react";
+import React, {useEffect} from "react";
 import { useDispatch } from "react-redux";
 import {
-  Button, Checkbox,
+  Button, Checkbox, FormControl,
   IconButton,
   Input,
-  InputAdornment,
+  InputAdornment, InputLabel,
   List,
-  ListItem, ListItemAvatar, ListItemButton, ListItemText,
+  ListItem, ListItemAvatar, ListItemButton, ListItemText, Select,
 } from "@mui/material";
+import { SelectChangeEvent } from '@mui/material/Select';
 import DoneOutlineIcon from '@mui/icons-material/DoneOutline';
 import ClearIcon from '@mui/icons-material/Clear';
 import Box from "@mui/material/Box";
@@ -15,8 +16,9 @@ import Avatar from "@mui/material/Avatar";
 import Typography from "@mui/material/Typography";
 import { useGetAllUsers } from "@/src/services/apiHooks";
 import { User } from "@/src/models/models";
-import { setGamePlayers } from "@/src/store/slices/gameSlice";
+import {addTrackId, initYearForPlayer, setGamePlayers} from "@/src/store/slices/gameSlice";
 import {useRouter} from "next/navigation";
+import MenuItem from "@mui/material/MenuItem";
 
 type CustomPlayer = {
   id: string;
@@ -26,6 +28,7 @@ type CustomPlayer = {
 type CheckedPlayer = {
   id: string;
   fullName: string;
+  years?: string[]; // allow optional years locally
 };
 
 export const NewGameModal: React.FC =() => {
@@ -34,13 +37,19 @@ export const NewGameModal: React.FC =() => {
   const [checkedUsers, setCheckedUsers] = React.useState<CheckedPlayer[]>([]);
   const [isShowAddCustomPlayer, setIsShowAddCustomPlayer] = React.useState<boolean>(false);
   const [customPlayerName, setCustomPlayerName] = React.useState<string>('');
+  const [trackId, setTrackId] = React.useState<string>('6tAdMSXECJTIWWP4GVpn83');
+
   const { data, loading, error } = useGetAllUsers();
+
+  useEffect(() => {
+    dispatch(addTrackId(trackId));
+  }, [trackId]);
 
   const handleToggle = (userId: string, fullName: string) => () => {
     setCheckedUsers(prev =>
       prev.some(u => u.id === userId)
         ? prev.filter(u => u.id !== userId)
-        : [...prev, { id: userId, fullName }]
+        : [...prev, { id: userId, fullName, years: [] }]
     );
   };
 
@@ -57,7 +66,7 @@ export const NewGameModal: React.FC =() => {
       id: `${Date.now()}`,
       fullName: nickname,
     }
-    setCheckedUsers(prev => [...prev, { id: newUser.id, fullName: newUser.fullName }]);
+    setCheckedUsers(prev => [...prev, { id: newUser.id, fullName: newUser.fullName, years: [] }]);
     setCustomPlayerName('');
     setIsShowAddCustomPlayer(false);
   }
@@ -69,10 +78,11 @@ export const NewGameModal: React.FC =() => {
     }
     dispatch(setGamePlayers(checkedUsers));
     router.push("/game/room");
-    console.log('Game started with players:', checkedUsers);
+  }
 
-
-
+  const choseTrackList = (event: SelectChangeEvent<string>) => {
+    const value = event.target.value as string;
+    setTrackId(value);
   }
 
   return (
@@ -180,6 +190,28 @@ export const NewGameModal: React.FC =() => {
             ))
           }
         </List>
+
+        <Box>
+          <Typography variant="h3" sx={{ fontSize: 18, marginBottom: 2, textAlign: 'center' }}>
+            Select playlist
+          </Typography>
+          <FormControl sx={{ m: 1, minWidth: 120 }}>
+            <InputLabel id="track-list">Select playlist</InputLabel>
+            <Select
+              size={"medium"}
+              labelId="track-list"
+              id="select-track-list"
+              value={trackId}
+              label="Select playlist"
+              onChange={(e)=>choseTrackList(e)}
+            >
+              <MenuItem value={'6tAdMSXECJTIWWP4GVpn83'}>Top 100 Al times</MenuItem>
+              <MenuItem value={'1InkWO5fnA7rMZJXCc6s7S'}>Ukrainian Songs</MenuItem>
+              <MenuItem value={'5ABHKGoOzxkaa28ttQV9sE'}>Top most streamed</MenuItem>
+              <MenuItem value={'4WsA2wYoXFkXaha0VofrPd'}>Top 90's</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
 
         <Button
           type="submit"

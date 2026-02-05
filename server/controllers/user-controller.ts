@@ -22,7 +22,7 @@ const cookieOptions = (_req: Request): CookieOptions => {
     secure: isProd,
     sameSite: isProd ? "none" : "lax",
     path: "/",
-    maxAge: 15 * 60 * 1000,
+    maxAge:  24 * 60 * 60 * 1000,
   };
 };
 
@@ -196,6 +196,8 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
   try {
     const { refreshToken } = req.body;
 
+    console.log("refreshAccessToken - received refreshToken:", refreshToken);
+
     if (!refreshToken) {
       return next(new AppError("Refresh token is required", 400));
     }
@@ -224,10 +226,14 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
 
     res.cookie("access_token", newAccessToken, cookieOptions(req));
 
+    const newRefreshToken = generateRefreshToken(userId);
+
+    await saveRefreshToken(userId, newRefreshToken);
+
     res.status(200).json({
       success: true,
       message: "Token refreshed",
-      data: {},
+      refreshToken: newRefreshToken,
     });
   } catch (e: any) {
     return next(e);

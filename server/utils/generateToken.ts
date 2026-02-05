@@ -22,7 +22,7 @@ export const generateRefreshToken = (userId: string): string => {
   const secret = process.env.JWT_REFRESH_SECRET as Secret;
   if (!secret) throw new Error("JWT_REFRESH_SECRET is not defined");
 
-  const expiresIn = (process.env.JWT_REFRESH_EXPIRES_IN ?? "30d") as SignOptions["expiresIn"];
+  const expiresIn = (process.env.JWT_REFRESH_EXPIRES_IN ?? "15d") as SignOptions["expiresIn"];
 
   return jwt.sign({ id: userId }, secret, { expiresIn });
 };

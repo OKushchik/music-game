@@ -19,6 +19,17 @@ export interface User {
   refreshToken?: string;
 }
 
+export interface GamePlayer {
+  id: string;
+  fullName: string;
+  years: string[];
+};
+
+export interface GameState {
+  trackId: string;
+  players: GamePlayer[];
+}
+
 export interface Song {
   _id?: string;
   title: string;

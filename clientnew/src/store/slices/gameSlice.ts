@@ -1,16 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import {GamePlayer, GameState} from "@/src/models/models";
 
-export type GamePlayer = {
-  id: string;
-  fullName: string;
-  years: string[];
-};
-
-interface GameState {
-  players: GamePlayer[];
-}
 
 const initialState: GameState = {
+  trackId: '',
   players: [],
 };
 
@@ -18,12 +11,17 @@ export const gameSlice = createSlice({
   name: 'game',
   initialState,
   reducers: {
-    setGamePlayers: (state, action: PayloadAction<Array<{ id: string; fullName: string }>>) => {
-      // Додаємо порожній масив years кожному гравцю
-      state.players = action.payload.map(player => ({
-        ...player,
-        years: [],
+    addTrackId: (state, action: PayloadAction<string>) => {
+      state.trackId = action.payload;
+    },
+    setGamePlayers: (state, action: PayloadAction<Array<{ id: string; fullName: string; years?: string[] }>>) => {
+      const playersWithYears: GamePlayer[] = action.payload.map(player => ({
+        id: player.id,
+        fullName: player.fullName,
+        years: player.years ?? [],
       }));
+
+      state.players = playersWithYears;
     },
     clearGamePlayers: (state) => {
       state.players = [];
@@ -55,5 +53,5 @@ export const gameSlice = createSlice({
   },
 });
 
-export const { setGamePlayers, clearGamePlayers, initYearForPlayer, addYearForPlayer } = gameSlice.actions;
+export const { addTrackId, setGamePlayers, clearGamePlayers, initYearForPlayer, addYearForPlayer } = gameSlice.actions;
 export default gameSlice.reducer;

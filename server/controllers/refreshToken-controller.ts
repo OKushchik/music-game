@@ -5,17 +5,15 @@ export const saveRefreshToken = async (
   token: string
 ): Promise<boolean> => {
   try {
-    await RefreshToken.deleteMany({ userId });
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
-    await RefreshToken.create({
-      userId,
-      token,
-      expiresAt,
-    });
-
+    await RefreshToken.findOneAndUpdate(
+      { userId },
+      { $set: { token, expiresAt } },
+      { upsert: true, new: true }
+    );
     return true;
   } catch (err) {
     console.error("Error saving refresh token:", err);

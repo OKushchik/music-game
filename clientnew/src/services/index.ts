@@ -12,8 +12,6 @@ $host.interceptors.response.use(
 
     if (error.response?.status === 401 && !original._retry) {
 
-      console.log("TRYING TO REFRESH TOKEN", error.response?.data);
-
       if(error.response?.data.message === 'Invalid or expired access token') {
         console.log("REFRESHING TOKEN");
         try {
@@ -21,7 +19,10 @@ $host.interceptors.response.use(
           if (!refreshToken) {
             throw new Error('No refresh token available');
           }
-          await $host.post("/auth/refresh", { refreshToken });
+          const newRefreshToken = await $host.post("/auth/refresh", { refreshToken });
+          console.log("TOKEN REFRESHED",newRefreshToken);
+          console.log("TOKEN REFRESHED",newRefreshToken.data.refreshToken);
+          localStorage.setItem('refresh_token',newRefreshToken.data.refreshToken);
           original._retry = true;
           return $host(original);
         } catch {

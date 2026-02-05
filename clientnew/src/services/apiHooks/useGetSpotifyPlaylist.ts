@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import {getSpotifyPlaylist} from "@/src/services/api/spotify";
+import {useSelector} from "react-redux";
+import {RootState} from "@/src/store/store";
 
 export type SpotifySong = {
   name: string;
@@ -16,7 +18,8 @@ export type UseGetSpotifyPlaylistResult = {
   generateRandomSong: () => void;
 };
 
-export function useGetSpotifyPlaylist(playlist: string): UseGetSpotifyPlaylistResult {
+export function useGetSpotifyPlaylist(): UseGetSpotifyPlaylistResult {
+  const trackId = useSelector((state: RootState) => state.game.trackId);
   const [spotifyPlaylist, setSpotifyPlaylist] = useState<any | null>([]);
   const [randomSong, setRandomSong] = useState<SpotifySong | null>(null);
   const [loading, setLoading] = useState(false);
@@ -47,7 +50,7 @@ export function useGetSpotifyPlaylist(playlist: string): UseGetSpotifyPlaylistRe
     (async () => {
       setLoading(true);
       try {
-        const res = await getSpotifyPlaylist(playlist);
+        const res = await getSpotifyPlaylist(trackId);
         setSpotifyPlaylist(res);
         if (res && res.tracks && res.tracks.items.length > 0) {
           generateRandomSong();
