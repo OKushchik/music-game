@@ -1,6 +1,7 @@
 import axios from "axios";
 import qs from "qs";
 import "dotenv/config";
+import {env} from "../utils/configService";
 
 let basicToken: string | null = null;
 let tokenExpiresAt: number = 0;
@@ -10,8 +11,8 @@ async function getAccessToken(): Promise<string | null> {
     return basicToken;
   }
 
-  const client_id = process.env.SPOTIFY_CLIENT_ID;
-  const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
+  const client_id = env.SPOTIFY_CLIENT_ID;
+  const client_secret = env.SPOTIFY_CLIENT_SECRET;
 
   if (!client_id || !client_secret) {
     throw new Error("Spotify credentials are not configured");

@@ -6,6 +6,7 @@ import {generateAccessToken, generateRefreshToken} from "../utils/generateToken"
 import {deleteRefreshToken, getRefreshToken, saveRefreshToken,} from "./refreshToken-controller";
 import {Role} from "../tsModels/enums";
 import {AppError} from "../utils/errorMiddleware";
+import {env} from "../utils/configService";
 
 interface CookieOptions {
   httpOnly: boolean;
@@ -16,7 +17,7 @@ interface CookieOptions {
 }
 
 const cookieOptions = (_req: Request): CookieOptions => {
-  const isProd = process.env.NODE_ENV === "production";
+  const isProd = env.NODE_ENV === "production";
   return {
     httpOnly: true,
     secure: isProd,
@@ -35,7 +36,7 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
     }
 
     let assignedRole = Role.USER;
-    if (admin_key === process.env.ADMIN_KEY) {
+    if (admin_key === env.ADMIN_KEY) {
       assignedRole = Role.ADMIN;
     }
 
@@ -133,9 +134,9 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
 export const logoutUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const token = req.cookies?.access_token;
-    if (token && process.env.JWT_SECRET) {
+    if (token && env.JWT_SECRET) {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
+        const decoded = jwt.verify(token, env.JWT_SECRET) as any;
         const userId = decoded?.id?.toString() || decoded?._id?.toString();
         if (userId) {
           await deleteRefreshToken(userId);
@@ -147,8 +148,8 @@ export const logoutUser = async (req: Request, res: Response, next: NextFunction
 
     res.clearCookie("access_token", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: env.NODE_ENV === "production",
+      sameSite: env.NODE_ENV === "production" ? "none" : "lax",
       path: "/",
     });
 
@@ -202,7 +203,7 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
       return next(new AppError("Refresh token is required", 400));
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as any;
+    const decoded = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET!) as any;
     const userId = decoded?.id?.toString() || decoded?._id?.toString();
 
     if (!userId) {

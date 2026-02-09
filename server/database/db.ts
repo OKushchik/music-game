@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
+import {env} from "../utils/configService";
 
 const connectToDB = async (): Promise<void> => {
   try {
-    const mongoUri = process.env.MONGO_DB_KEY;
+    const mongoUri = env.MONGO_DB_KEY;
     if (!mongoUri) {
       throw new Error("MONGO_DB_KEY is not defined in environment variables");
     }

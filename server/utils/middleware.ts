@@ -1,6 +1,7 @@
 import {NextFunction, Request, Response} from "express";
 import jwt from "jsonwebtoken";
 import {Role} from "../tsModels/enums";
+import {env} from "./configService";
 
 export const authGuard = (req: Request, res: Response, next: NextFunction): void => {
   const token = req.cookies?.access_token;
@@ -11,7 +12,7 @@ export const authGuard = (req: Request, res: Response, next: NextFunction): void
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET!);
+    const payload = jwt.verify(token, env.JWT_SECRET!);
     req.user = payload as Express.Request["user"];
     next();
   } catch (err) {
