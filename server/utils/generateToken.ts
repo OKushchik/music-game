@@ -19,12 +19,12 @@ export const generateAccessToken = (user: UserPayload): string => {
   );
 };
 
-export const generateRefreshToken = (userId: string): string => {
+export const generateRefreshToken = (userId: string, sessionId :string): string => {
   const secret = env.JWT_REFRESH_SECRET as Secret;
   if (!secret) throw new Error("JWT_REFRESH_SECRET is not defined");
 
   const expiresIn = (env.JWT_REFRESH_EXPIRES_IN ?? "15d") as SignOptions["expiresIn"];
 
-  return jwt.sign({ id: userId }, secret, { expiresIn });
+  return jwt.sign({ id: userId,sessionId  }, secret, { expiresIn });
 };
 

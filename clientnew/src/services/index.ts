@@ -19,16 +19,15 @@ $host.interceptors.response.use(
           if (!refreshToken) {
             throw new Error('No refresh token available');
           }
-          const newRefreshToken = await $host.post("/auth/refresh", { refreshToken });
-          console.log("TOKEN REFRESHED",newRefreshToken);
-          console.log("TOKEN REFRESHED",newRefreshToken.data.refreshToken);
-          localStorage.setItem('refresh_token',newRefreshToken.data.refreshToken);
+          await $host.post("/auth/refresh", { refreshToken });
+
           original._retry = true;
           return $host(original);
         } catch {
           document.cookie = 'access_token=; path=/; max-age=0';
           localStorage.removeItem('refresh_token');
           localStorage.removeItem('app_state');
+          window.location.href = "/login";
           return Promise.reject(error);
         }
       }

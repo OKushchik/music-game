@@ -1,17 +1,22 @@
-import RefreshToken from "../models/refreshToken";
+import RefreshToken, {RefreshTokenDoc} from "../models/refreshToken";
+import {hash} from "node:crypto";
+import {hashToken} from "../utils/hashToken";
 
 export const saveRefreshToken = async (
   userId: string,
-  token: string
+  token: string,
+  sessionId: string
 ): Promise<boolean> => {
   try {
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
+
+
     await RefreshToken.findOneAndUpdate(
-      { userId },
-      { $set: { token, expiresAt } },
+      { userId, sessionId },
+      { $set: { tokenHash: hashToken(token), expiresAt } },
       { upsert: true, new: true }
     );
     return true;
@@ -21,10 +26,12 @@ export const saveRefreshToken = async (
   }
 };
 
-export const getRefreshToken = async (userId: string): Promise<string | null> => {
+export const getRefreshToken = async (refreshHash: string): Promise<RefreshTokenDoc | null> => {
   try {
-    const refreshToken = await RefreshToken.findOne({ userId });
-    return refreshToken ? refreshToken.token : null;
+    return await RefreshToken.findOne({
+      tokenHash: refreshHash,
+      revokedAt: null,
+    });
   } catch (err) {
     console.error("Error getting refresh token:", err);
     return null;

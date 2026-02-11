@@ -7,6 +7,8 @@ import {deleteRefreshToken, getRefreshToken, saveRefreshToken,} from "./refreshT
 import {Role} from "../tsModels/enums";
 import {AppError} from "../utils/errorMiddleware";
 import {env} from "../utils/configService";
+import { randomUUID } from "crypto";
+import {hashToken} from "../utils/hashToken";
 
 interface CookieOptions {
   httpOnly: boolean;
@@ -63,10 +65,20 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
         _id: userId,
       }
     );
-    const refreshToken = generateRefreshToken(userId);
-    await saveRefreshToken(userId, refreshToken);
+
+    const sessionId = randomUUID();
+    const refreshToken = generateRefreshToken(userId,sessionId);
 
     res.cookie("access_token", accessToken, cookieOptions(req));
+
+
+    res.cookie("session_id", sessionId, {
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+    });
+
+    await saveRefreshToken(userId, refreshToken,sessionId);
 
     res.status(201).json({
       success: true,
@@ -109,11 +121,19 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       ...user.toObject(),
       _id: userId,
     });
-    const refreshToken = generateRefreshToken(userId);
 
-    await saveRefreshToken(userId, refreshToken);
+    const sessionId = randomUUID();
+    const refreshToken = generateRefreshToken(userId,sessionId);
 
     res.cookie("access_token", accessToken, cookieOptions(req));
+
+    res.cookie("session_id", sessionId, {
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+    });
+
+    await saveRefreshToken(userId, refreshToken,sessionId);
 
     res.status(200).json({
       success: true,
@@ -132,13 +152,16 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
 };
 
 export const logoutUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+ console.log("logoutUser - called");
   try {
     const token = req.cookies?.access_token;
+    console.log("logoutUser - received access token:", token);
     if (token && env.JWT_SECRET) {
       try {
         const decoded = jwt.verify(token, env.JWT_SECRET) as any;
         const userId = decoded?.id?.toString() || decoded?._id?.toString();
         if (userId) {
+          console.log("logoutUser - decoded user ID:", userId);
           await deleteRefreshToken(userId);
         }
       } catch (err: any) {
@@ -147,6 +170,13 @@ export const logoutUser = async (req: Request, res: Response, next: NextFunction
     }
 
     res.clearCookie("access_token", {
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+      path: "/",
+    });
+
+    res.clearCookie("session_id", {
       httpOnly: true,
       secure: env.NODE_ENV === "production",
       sameSite: env.NODE_ENV === "production" ? "none" : "lax",
@@ -203,16 +233,23 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
       return next(new AppError("Refresh token is required", 400));
     }
 
-    const decoded = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET!) as any;
+    const decoded = await jwt.verify(refreshToken, env.JWT_REFRESH_SECRET!) as any;
+    console.log("refreshAccessToken - decoded refresh token:", decoded);
     const userId = decoded?.id?.toString() || decoded?._id?.toString();
+    const sessionId = decoded?.sessionId;
 
-    if (!userId) {
-      return next(new AppError("Invalid refresh token", 401));
+    if (!userId || !sessionId) return next(new AppError("Invalid refresh token", 401))
+
+    const tokenHash = hashToken(refreshToken);
+
+    const session = await getRefreshToken(tokenHash);
+
+    if (!session) {
+      return next(new AppError("Refresh token expired or invalid", 401));
     }
 
-    const storedToken = await getRefreshToken(userId);
-    if (!storedToken || storedToken !== refreshToken) {
-      return next(new AppError("Refresh token expired or invalid", 401));
+    if (session.sessionId !== sessionId) {
+      return next(new AppError("Refresh token mismatch", 401));
     }
 
     const user = await User.findById(userId);
@@ -227,14 +264,9 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
 
     res.cookie("access_token", newAccessToken, cookieOptions(req));
 
-    const newRefreshToken = generateRefreshToken(userId);
-
-    await saveRefreshToken(userId, newRefreshToken);
-
     res.status(200).json({
       success: true,
       message: "Token refreshed",
-      refreshToken: newRefreshToken,
     });
   } catch (e: any) {
     return next(e);

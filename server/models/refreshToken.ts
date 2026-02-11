@@ -1,7 +1,9 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, {Schema, Document, HydratedDocument} from "mongoose";
 
 interface IRefreshToken extends Document {
   userId: mongoose.Types.ObjectId;
+  sessionId: string;
+  tokenHash: string;
   token: string;
   expiresAt: Date;
   createdAt: Date;
@@ -16,6 +18,12 @@ const RefreshTokenSchema = new Schema<IRefreshToken>(
       required: true,
       index: true,
     },
+    sessionId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    tokenHash: { type: String, unique: true, index: true, required: true },
     token: {
       type: String,
       required: true,
@@ -30,5 +38,6 @@ const RefreshTokenSchema = new Schema<IRefreshToken>(
   { timestamps: true }
 );
 
+export type RefreshTokenDoc = HydratedDocument<IRefreshToken>;
 export default mongoose.model<IRefreshToken>("RefreshToken", RefreshTokenSchema);
 
