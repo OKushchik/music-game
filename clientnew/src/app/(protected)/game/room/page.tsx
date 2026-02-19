@@ -12,6 +12,7 @@ import SortableList from "@/src/app/components/SortableList/SortableList";
 import {toMs} from "@/src/utils/helpers";
 import {useRouter} from "next/navigation";
 import {block} from "sharp";
+import SocketClient from "@/src/app/components/SocketClient/SocketClient";
 
 function RoomPage() {
   const players = useSelector((state: RootState) => state.game.players);
@@ -127,6 +128,7 @@ function RoomPage() {
         )}
       </Box>
 
+      <SocketClient />
     </div>
   );
 }

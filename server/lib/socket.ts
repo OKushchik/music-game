@@ -15,8 +15,47 @@ export function initSocket(httpServer: http.Server) {
     },
   });
 
+  const rooms = new Map();
+
   io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
+
+    socket.on("create_room", () => {
+      const roomId = crypto.randomUUID();
+
+      rooms.set(roomId, {
+        players: [socket.id]
+      });
+
+      socket.join(roomId);
+      socket.emit("room_created", roomId);
+      console.log(`Room created with ID: ${roomId} by socket: ${socket.id}`);
+    });
+
+
+    socket.on("join_room", ({ roomId, name }) => {
+      const room = rooms.get(roomId);
+
+      if (!room) {
+        socket.emit("error_msg", "Room not found");
+        return;
+      }
+      if (!room.players.includes(socket.id)) {
+        room.players.push({ roomId, name });
+      }
+      socket.join(roomId);
+
+      io?.to(roomId).emit("player_joined", socket.id);
+      io?.to(roomId).emit("players_in_room", room.players);
+      console.log(`Socket ${socket.id} joined room: ${roomId}`);
+      console.log(`Current players in room ${roomId}:`, room.players);
+    });
+
+
+    socket.on('players_in_room', (playersList: string[]) => {
+      console.log('Received players in room:', playersList);
+    });
+
 
     socket.on('disconnect', () => {
       console.log('User disconnected:', socket.id);
@@ -24,15 +63,9 @@ export function initSocket(httpServer: http.Server) {
 
     socket.on('message', (payload) => {
       console.log('Received message from client:', payload);
-      // Echo back
       socket.emit('message', `Server received: ${payload}`);
     });
   });
 
-  return io;
-}
-
-export function getIO() {
-  if (!io) throw new Error('Socket.io not initialized. Call initSocket first.');
   return io;
 }

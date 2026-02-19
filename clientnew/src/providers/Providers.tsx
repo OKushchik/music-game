@@ -5,6 +5,7 @@ import StyledRegistry from "../providers/StyledRegistry";
 import { ReduxProvider } from "@/src/providers/ReduxProvider";
 import { theme } from "@/src/providers/Theme";
 import AuthProvider from "@/src/providers/AuthProvider";
+import { SocketProvider } from "@/src/providers/SocketProvider";
 
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -12,7 +13,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <StyledRegistry>
       <ReduxProvider>
         <AuthProvider>
-          <ThemeProvider theme={theme}>{children}</ThemeProvider>
+          <ThemeProvider theme={theme}>
+            <SocketProvider>
+              {children}
+            </SocketProvider>
+          </ThemeProvider>
         </AuthProvider>
       </ReduxProvider>
     </StyledRegistry>

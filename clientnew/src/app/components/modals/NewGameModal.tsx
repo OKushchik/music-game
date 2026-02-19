@@ -16,9 +16,10 @@ import Avatar from "@mui/material/Avatar";
 import Typography from "@mui/material/Typography";
 import { useGetAllUsers } from "@/src/services/apiHooks";
 import { User } from "@/src/models/models";
-import {addTrackId, initYearForPlayer, setGamePlayers} from "@/src/store/slices/gameSlice";
+import {addTrackId, setGamePlayers} from "@/src/store/slices/gameSlice";
 import {useRouter} from "next/navigation";
 import MenuItem from "@mui/material/MenuItem";
+import {useSocketClient} from "@/src/hooks/useSocket";
 
 type CustomPlayer = {
   id: string;
@@ -31,19 +32,30 @@ type CheckedPlayer = {
   years?: string[]; // allow optional years locally
 };
 
-export const NewGameModal: React.FC =() => {
+interface NewGameModalProps {
+  isPrivate?: boolean;
+}
+
+export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
   const dispatch = useDispatch();
   const router = useRouter();
   const [checkedUsers, setCheckedUsers] = React.useState<CheckedPlayer[]>([]);
   const [isShowAddCustomPlayer, setIsShowAddCustomPlayer] = React.useState<boolean>(false);
   const [customPlayerName, setCustomPlayerName] = React.useState<string>('');
   const [trackId, setTrackId] = React.useState<string>('6tAdMSXECJTIWWP4GVpn83');
+  const [roomId, setRoomId] = React.useState<string | null>('');
+  const {createRoom} = useSocketClient();
 
   const { data, loading, error } = useGetAllUsers();
 
   useEffect(() => {
-    dispatch(addTrackId(trackId));
-  }, [trackId]);
+    if (isPrivate && !roomId) {
+      createRoom((id: string) => {
+        console.log('Room created with ID:', id);
+        setRoomId(id)
+      });
+    }
+  }, []);
 
   const handleToggle = (userId: string, fullName: string) => () => {
     setCheckedUsers(prev =>
@@ -76,8 +88,11 @@ export const NewGameModal: React.FC =() => {
       alert('Please select at least one player');
       return;
     }
+
     dispatch(setGamePlayers(checkedUsers));
-    router.push("/game/room");
+    dispatch(addTrackId(trackId));
+    // Navigate to dynamic room
+    isPrivate ? router.push(`/game/room/${roomId}`) : router.push(`/game/room`);
   }
 
   const choseTrackList = (event: SelectChangeEvent<string>) => {
@@ -99,6 +114,13 @@ export const NewGameModal: React.FC =() => {
         <Typography variant="h3" sx={{ fontSize: 18, marginBottom: 2, textAlign: 'center' }}>
           Users
         </Typography>
+
+        {isPrivate && (
+          <>
+            <div>Room ID:</div>
+            <div>{roomId}</div>
+          </>
+        )}
         <List dense sx={{
           marginTop: 2,
           width: '100%',
@@ -110,34 +132,34 @@ export const NewGameModal: React.FC =() => {
         }}>
           {loading && <Typography>Loading...</Typography>}
           {error && <Typography>Error loading users</Typography>}
-          {data?.map((user: User, index) => {
-            const userId = user.id || user._id || `tmp-${index}`;
-            const labelId = `checkbox-list-secondary-label-${userId}`;
-            const isChecked = checkedUsers.some(u => u.id === userId);
-            return (
-              <ListItem
-                key={userId!}
-                secondaryAction={
-                  <Checkbox
-                    edge="end"
-                    onChange={handleToggle(userId as string, user.fullName)}
-                    checked={isChecked}
-                  />
-                }
-                disablePadding
-              >
-                <ListItemButton>
-                  <ListItemAvatar>
-                    <Avatar
-                      alt={user.fullName}
-                      src={user.avatarUrl || '/static/images/avatar/default.jpg'}
-                    />
-                  </ListItemAvatar>
-                  <ListItemText id={labelId} primary={user.fullName} />
-                </ListItemButton>
-              </ListItem>
-            );
-          })}
+          {/*{data?.map((user: User, index) => {*/}
+          {/*  const userId = user.id || user._id || `tmp-${index}`;*/}
+          {/*  const labelId = `checkbox-list-secondary-label-${userId}`;*/}
+          {/*  const isChecked = checkedUsers.some(u => u.id === userId);*/}
+          {/*  return (*/}
+          {/*    <ListItem*/}
+          {/*      key={userId!}*/}
+          {/*      secondaryAction={*/}
+          {/*        <Checkbox*/}
+          {/*          edge="end"*/}
+          {/*          onChange={handleToggle(userId as string, user.fullName)}*/}
+          {/*          checked={isChecked}*/}
+          {/*        />*/}
+          {/*      }*/}
+          {/*      disablePadding*/}
+          {/*    >*/}
+          {/*      <ListItemButton>*/}
+          {/*        <ListItemAvatar>*/}
+          {/*          <Avatar*/}
+          {/*            alt={user.fullName}*/}
+          {/*            src={user.avatarUrl || '/static/images/avatar/default.jpg'}*/}
+          {/*          />*/}
+          {/*        </ListItemAvatar>*/}
+          {/*        <ListItemText id={labelId} primary={user.fullName} />*/}
+          {/*      </ListItemButton>*/}
+          {/*    </ListItem>*/}
+          {/*  );*/}
+          {/*})}*/}
         </List>
         {
           isShowAddCustomPlayer &&
@@ -203,6 +225,7 @@ export const NewGameModal: React.FC =() => {
               id="select-track-list"
               value={trackId}
               label="Select playlist"
+              variant="outlined"
               onChange={(e)=>choseTrackList(e)}
             >
               <MenuItem value={'6tAdMSXECJTIWWP4GVpn83'}>Top 100 Al times</MenuItem>

@@ -5,7 +5,7 @@ import {NewGameModal} from "@/src/app/components/modals/NewGameModal";
 function GamePage() {
   return (
     <div>
-      <NewGameModal />
+      <NewGameModal isPrivate={true} />
     </div>
   );
 }

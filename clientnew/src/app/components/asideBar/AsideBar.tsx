@@ -122,6 +122,12 @@ function AsideBar() {
               <MenuItem key={'songs'} onClick={handleCloseNavMenu}>
                 <Typography sx={{ textAlign: 'center' }}>Songs</Typography>
               </MenuItem>
+              <MenuItem key={'createRoom'} onClick={() => handleNavMenu('/game/private-game')}>
+                <Typography sx={{ textAlign: 'center' }}>CreateRoom</Typography>
+              </MenuItem>
+              <MenuItem key={'joinRoom'} onClick={() => handleNavMenu('/game/join')}>
+                <Typography sx={{ textAlign: 'center' }}>Join</Typography>
+              </MenuItem>
               {
                 isMounted && players.length > 0 && (
                   <MenuItem key={'room'} onClick={() => handleNavMenu('/game/room')}>
@@ -178,6 +184,20 @@ function AsideBar() {
               sx={{ my: 2, color: 'white', display: 'block' }}
             >
               Songs
+            </Button>
+            <Button
+              key={'createRoom'}
+              onClick={() => handleNavMenu('/private-game')}
+              sx={{ my: 2, color: 'white', display: 'block' }}
+            >
+              Create Room
+            </Button>
+            <Button
+              key={'join'}
+              onClick={() => handleNavMenu('/join')}
+              sx={{ my: 2, color: 'white', display: 'block' }}
+            >
+              Join
             </Button>
             {
               isMounted && players.length > 0 && (

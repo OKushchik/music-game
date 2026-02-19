@@ -38,6 +38,13 @@ export const makeStore = () => {
             payload: parsedState.game.players,
           });
         }
+        if (parsedState.game?.trackId) {
+          store.dispatch({
+            type: 'game/addTrackId',
+            payload: parsedState.game.trackId,
+          });
+        }
+
       } catch (error) {
         console.error('Failed to load state from localStorage:', error);
       }
@@ -56,7 +63,10 @@ export const makeStore = () => {
       localStorage.setItem('app_state', JSON.stringify({
         songs: state.songs,
         auth: state.auth,
-        game: { players: state.game.players }
+        game: {
+          trackId: state.game.trackId,
+          players: state.game.players
+        }
       }));
     }
   });
