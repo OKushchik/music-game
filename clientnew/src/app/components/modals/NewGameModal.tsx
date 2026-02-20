@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import { useDispatch } from "react-redux";
 import {
   Button, Checkbox, FormControl,
@@ -45,8 +45,11 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
   const [trackId, setTrackId] = React.useState<string>('6tAdMSXECJTIWWP4GVpn83');
   const [roomId, setRoomId] = React.useState<string | null>('');
   const {createRoom} = useSocketClient();
+  const { usePlayersInRoom, joinRoom, connected, socketId  } = useSocketClient();
+  const players = usePlayersInRoom();
 
   const { data, loading, error } = useGetAllUsers();
+  const [userName, setUserName] = useState<string>("");
 
   useEffect(() => {
     if (isPrivate && !roomId) {
@@ -56,6 +59,13 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
       });
     }
   }, []);
+
+
+  useEffect(() => {
+    if (isPrivate && roomId && userName.trim() && socketId && connected) {
+      joinRoom(roomId, { id: socketId, name: userName });
+    }
+  }, [connected]);
 
   const handleToggle = (userId: string, fullName: string) => () => {
     setCheckedUsers(prev =>
@@ -91,8 +101,8 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
 
     dispatch(setGamePlayers(checkedUsers));
     dispatch(addTrackId(trackId));
-    // Navigate to dynamic room
-    isPrivate ? router.push(`/game/room/${roomId}`) : router.push(`/game/room`);
+    joinRoom(roomId!, { id: socketId!, name: userName });
+    isPrivate ? router.push(`/private-game/${roomId}?name=${encodeURIComponent(userName)}`) : router.push(`/game/room`);
   }
 
   const choseTrackList = (event: SelectChangeEvent<string>) => {
@@ -111,6 +121,12 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
         <Typography variant="h2" sx={{ fontSize: 24, marginBottom: 2, textAlign: 'center' }}>
           Start game
         </Typography>
+        <Input
+          type="text"
+          placeholder="Enter your name"
+          value={userName}
+          onChange={(e) => setUserName(e.target.value)}
+        />
         <Typography variant="h3" sx={{ fontSize: 18, marginBottom: 2, textAlign: 'center' }}>
           Users
         </Typography>
@@ -128,38 +144,43 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
           bgcolor: 'background.paper',
           maxHeight: 200,
           overflow: 'auto',
-          '& ul': { padding: 0 },
+          '& ul': {padding: 0},
         }}>
           {loading && <Typography>Loading...</Typography>}
           {error && <Typography>Error loading users</Typography>}
-          {/*{data?.map((user: User, index) => {*/}
-          {/*  const userId = user.id || user._id || `tmp-${index}`;*/}
-          {/*  const labelId = `checkbox-list-secondary-label-${userId}`;*/}
-          {/*  const isChecked = checkedUsers.some(u => u.id === userId);*/}
-          {/*  return (*/}
-          {/*    <ListItem*/}
-          {/*      key={userId!}*/}
-          {/*      secondaryAction={*/}
-          {/*        <Checkbox*/}
-          {/*          edge="end"*/}
-          {/*          onChange={handleToggle(userId as string, user.fullName)}*/}
-          {/*          checked={isChecked}*/}
-          {/*        />*/}
-          {/*      }*/}
-          {/*      disablePadding*/}
-          {/*    >*/}
-          {/*      <ListItemButton>*/}
-          {/*        <ListItemAvatar>*/}
-          {/*          <Avatar*/}
-          {/*            alt={user.fullName}*/}
-          {/*            src={user.avatarUrl || '/static/images/avatar/default.jpg'}*/}
-          {/*          />*/}
-          {/*        </ListItemAvatar>*/}
-          {/*        <ListItemText id={labelId} primary={user.fullName} />*/}
-          {/*      </ListItemButton>*/}
-          {/*    </ListItem>*/}
-          {/*  );*/}
-          {/*})}*/}
+          {/*<ul>*/}
+          {/*  {players?.map((player) => (*/}
+          {/*    <li key={player.id}>{player.name || player.id}</li>*/}
+          {/*  ))}*/}
+          {/*</ul>*/}
+          {players?.map((player, index) => {
+            const userId = player.id || `tmp-${index}`;
+            const labelId = `checkbox-list-secondary-label-${userId}`;
+            const isChecked = checkedUsers.some(u => u.id === userId);
+            return (
+              <ListItem
+                key={userId!}
+                secondaryAction={
+                  <Checkbox
+                    edge="end"
+                    onChange={handleToggle(userId as string, player.name)}
+                    checked={isChecked}
+                  />
+                }
+                disablePadding
+              >
+                <ListItemButton>
+                  <ListItemAvatar>
+                    <Avatar
+                      alt={player.name}
+                      src={'/static/images/avatar/default.jpg'}
+                    />
+                  </ListItemAvatar>
+                  <ListItemText id={labelId} primary={player.name}/>
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
         </List>
         {
           isShowAddCustomPlayer &&

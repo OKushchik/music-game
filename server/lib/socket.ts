@@ -1,8 +1,33 @@
 import { Server } from 'socket.io';
 import http from 'http';
-import {env} from "../utils/configService";
+import { env } from "../utils/configService";
+import crypto from "node:crypto";
 
 let io: Server | null = null;
+
+type Player = { id: string; name: string; years?: string[] };
+
+interface RoundState {
+  trackId: string | null;
+  insertYear: string | null; // ISO date string, e.g. "1999-01-01"
+  activePlayerId: string | null;
+}
+
+type Room = {
+  players: Player[];
+  currentRound: RoundState;
+};
+
+function createEmptyRoom(): Room {
+  return {
+    players: [],
+    currentRound: {
+      trackId: null,
+      insertYear: null,
+      activePlayerId: null,
+    },
+  };
+}
 
 export function initSocket(httpServer: http.Server) {
   if (io) return io;
@@ -15,47 +40,100 @@ export function initSocket(httpServer: http.Server) {
     },
   });
 
-  const rooms = new Map();
+  const rooms = new Map<string, Room>();
 
   io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
-
     socket.on("create_room", () => {
       const roomId = crypto.randomUUID();
 
-      rooms.set(roomId, {
-        players: [socket.id]
-      });
+      rooms.set(roomId, createEmptyRoom());
 
       socket.join(roomId);
       socket.emit("room_created", roomId);
+      io?.to(roomId).emit("players_in_room", rooms.get(roomId)!.players);
       console.log(`Room created with ID: ${roomId} by socket: ${socket.id}`);
     });
 
+    socket.on("join_room", ({ roomId, user }) => {
+      if (!roomId || typeof roomId !== "string") {
+        socket.emit("error_msg", "Invalid roomId");
+        return;
+      }
 
-    socket.on("join_room", ({ roomId, name }) => {
       const room = rooms.get(roomId);
-
       if (!room) {
         socket.emit("error_msg", "Room not found");
         return;
       }
-      if (!room.players.includes(socket.id)) {
-        room.players.push({ roomId, name });
+
+      if (!user || typeof user.id !== "string") {
+        socket.emit("error_msg", "Invalid user");
+        return;
       }
+
+      const normalizedUser: Player = {
+        id: user.id,
+        name: typeof user.name === "string" && user.name.trim() ? user.name : "Player",
+        years: [],
+      };
+
+      if (!room.players.some((p) => p.id === normalizedUser.id)) {
+        room.players.push(normalizedUser);
+      }
+
       socket.join(roomId);
 
       io?.to(roomId).emit("player_joined", socket.id);
       io?.to(roomId).emit("players_in_room", room.players);
-      console.log(`Socket ${socket.id} joined room: ${roomId}`);
+      // Also send current game state to the joining client
+      socket.emit("game_state", room.currentRound);
       console.log(`Current players in room ${roomId}:`, room.players);
     });
 
-
-    socket.on('players_in_room', (playersList: string[]) => {
-      console.log('Received players in room:', playersList);
+    // Client asks for full game state explicitly
+    socket.on('request_game_state', ({ roomId }) => {
+      const room = rooms.get(roomId);
+      if (!room) return;
+      socket.emit('game_state', room.currentRound);
     });
 
+    // Host (or any client) starts/updates a round with chosen track and insertYear
+    socket.on('set_round', ({ roomId, trackIndex, insertYear, activePlayerId }) => {
+      const room = rooms.get(roomId);
+      if (!room) return;
+
+      room.currentRound = {
+        trackId: trackIndex ?? null, // reuse field as index or extend type if needed
+        insertYear: insertYear ?? null,
+        activePlayerId: activePlayerId ?? null,
+      } as any;
+
+      io?.to(roomId).emit('game_state', {
+        trackIndex: trackIndex ?? null,
+        insertYear: insertYear ?? null,
+        activePlayerId: activePlayerId ?? null,
+      });
+    });
+
+    // Add year to player in room (and sync players list)
+    socket.on('add_year', ({ roomId, playerId, year }) => {
+      const room = rooms.get(roomId);
+      if (!room) return;
+      const player = room.players.find(p => p.id === playerId);
+      if (!player) return;
+      if (!player.years) player.years = [];
+      if (!player.years.includes(year)) player.years.push(year);
+      io?.to(roomId).emit('players_in_room', room.players);
+    });
+
+    // Reorder players in room
+    socket.on('reorder_players', ({ roomId, newOrder }) => {
+      const room = rooms.get(roomId);
+      if (!room) return;
+      const idToPlayer = Object.fromEntries(room.players.map(p => [p.id, p]));
+      room.players = newOrder.map((id: string) => idToPlayer[id]).filter(Boolean);
+      io?.to(roomId).emit('players_in_room', room.players);
+    });
 
     socket.on('disconnect', () => {
       console.log('User disconnected:', socket.id);

@@ -152,16 +152,13 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
 };
 
 export const logoutUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
- console.log("logoutUser - called");
   try {
     const token = req.cookies?.access_token;
-    console.log("logoutUser - received access token:", token);
     if (token && env.JWT_SECRET) {
       try {
         const decoded = jwt.verify(token, env.JWT_SECRET) as any;
         const userId = decoded?.id?.toString() || decoded?._id?.toString();
         if (userId) {
-          console.log("logoutUser - decoded user ID:", userId);
           await deleteRefreshToken(userId);
         }
       } catch (err: any) {
@@ -227,14 +224,11 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
   try {
     const { refreshToken } = req.body;
 
-    console.log("refreshAccessToken - received refreshToken:", refreshToken);
-
     if (!refreshToken) {
       return next(new AppError("Refresh token is required", 400));
     }
 
     const decoded = await jwt.verify(refreshToken, env.JWT_REFRESH_SECRET!) as any;
-    console.log("refreshAccessToken - decoded refresh token:", decoded);
     const userId = decoded?.id?.toString() || decoded?._id?.toString();
     const sessionId = decoded?.sessionId;
 

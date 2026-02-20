@@ -1,32 +1,50 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 
 interface SocketContextType {
   socket: Socket | null;
+  socketId: string | null;
   connected: boolean;
 }
 
 const SocketContext = createContext<SocketContextType>({
   socket: null,
+  socketId: null,
   connected: false,
 });
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [connected, setConnected] = useState(false);
-  const socketRef = useRef<Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [socketId, setSocketId] = useState<string | null>(null);
 
   useEffect(() => {
-    const socket = io("http://localhost:8080", { withCredentials: true });
-    socketRef.current = socket;
-    socket.on("connect", () => setConnected(true));
-    socket.on("disconnect", () => setConnected(false));
+    const s = io("http://localhost:8080", { withCredentials: true });
+    setSocket(s);
+
+    const onConnect = () => {
+      setConnected(true);
+      setSocketId(s.id ?? null);
+    };
+    const onDisconnect = () => {
+      setConnected(false);
+      setSocketId(null);
+    };
+
+    s.on("connect", onConnect);
+    s.on("disconnect", onDisconnect);
+
     return () => {
-      socket.disconnect();
+      s.off("connect", onConnect);
+      s.off("disconnect", onDisconnect);
+      s.disconnect();
+      setSocket(null);
+      setSocketId(null);
     };
   }, []);
 
   return (
-    <SocketContext.Provider value={{ socket: socketRef.current, connected }}>
+    <SocketContext.Provider value={{ socket, socketId, connected }}>
       {children}
     </SocketContext.Provider>
   );
@@ -35,4 +53,3 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 export function useSocket() {
   return useContext(SocketContext);
 }
-

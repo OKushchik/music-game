@@ -12,10 +12,9 @@ import {
 } from "@dnd-kit/core";
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import {Chip} from "@mui/material";
-import { addYearForPlayer } from "@/src/store/slices/gameSlice";
-import { AppDispatch } from "@/src/store/store";
-import {YearValue} from "@/src/models/models";
-import {toMs} from "@/src/utils/helpers";
+import { useSocket } from "@/src/providers/SocketProvider";
+import { YearValue } from "@/src/models/models";
+import { toMs } from "@/src/utils/helpers";
 
 type GapId = `gap-${number}`;
 
@@ -89,14 +88,17 @@ export default function SortibleList({
   insertYear,
   activePlayerIndex,
   setActivePlayerIndex,
+  roomId,
 }: {
   players: any[];
   insertYear: YearValue;
   activePlayerIndex: number;
   setActivePlayerIndex: (index: number | ((prev: number) => number)) => void;
+  roomId: string;
 }) {
-  const dispatch = useDispatch<AppDispatch>();
+  // const dispatch = useDispatch<AppDispatch>();
   const [years, setYears] = useState<YearValue[]>([]);
+  const { socket } = useSocket();
 
   useEffect(() => {
     const currentPlayer = players[activePlayerIndex];
@@ -148,8 +150,8 @@ export default function SortibleList({
     }
 
     const currentPlayer = players[activePlayerIndex];
-    if (currentPlayer?.id) {
-      dispatch(addYearForPlayer({ playerId: currentPlayer.id, year: insertYear }));
+    if (currentPlayer?.id && roomId && socket) {
+      socket.emit('add_year', { roomId, playerId: currentPlayer.id, year: insertYear });
     }
 
     const next = [...years.slice(0, idx), insertYear, ...years.slice(idx)];
