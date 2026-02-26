@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { useDispatch } from "react-redux";
 import {
   DndContext,
   DragEndEvent,
@@ -14,7 +13,10 @@ import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import {Chip} from "@mui/material";
 import { useSocket } from "@/src/providers/SocketProvider";
 import { YearValue } from "@/src/models/models";
-import { toMs } from "@/src/utils/helpers";
+import { addYearForPlayer } from "@/src/store/slices/gameSlice";
+import { AppDispatch } from "@/src/store/store";
+import {toMs} from "@/src/utils/helpers";
+import {useDispatch} from "react-redux";
 
 type GapId = `gap-${number}`;
 
@@ -94,9 +96,9 @@ export default function SortibleList({
   insertYear: YearValue;
   activePlayerIndex: number;
   setActivePlayerIndex: (index: number | ((prev: number) => number)) => void;
-  roomId: string;
+  roomId: string | null;
 }) {
-  // const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useDispatch<AppDispatch>();
   const [years, setYears] = useState<YearValue[]>([]);
   const { socket } = useSocket();
 
@@ -141,7 +143,7 @@ export default function SortibleList({
 
     if (!ok) return;
 
-    if(ok && !isCorrect) {
+    if (ok && !isCorrect) {
       setActivePlayerIndex((prev) => {
         const nextIndex = prev + 1;
         return nextIndex < players.length ? nextIndex : 0;
@@ -153,6 +155,10 @@ export default function SortibleList({
     if (currentPlayer?.id && roomId && socket) {
       socket.emit('add_year', { roomId, playerId: currentPlayer.id, year: insertYear });
     }
+    if (currentPlayer?.id) {
+      dispatch(addYearForPlayer({playerId: currentPlayer.id, year: insertYear}));
+    }
+
 
     const next = [...years.slice(0, idx), insertYear, ...years.slice(idx)];
     const nextSorted = [...next].sort((a, b) => toMs(a) - toMs(b));
@@ -162,6 +168,7 @@ export default function SortibleList({
       const nextIndex = prev + 1;
       return nextIndex < players.length ? nextIndex : 0;
     });
+
   }
   return (
     <div style={{ display: "grid", gap: 16, padding: 16 }}>

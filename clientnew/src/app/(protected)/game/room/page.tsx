@@ -11,8 +11,6 @@ import {SpotifyPlayer} from "@/src/app/components/SpotifyPlayer/SpotifyPlayer";
 import SortableList from "@/src/app/components/SortableList/SortableList";
 import {toMs} from "@/src/utils/helpers";
 import {useRouter} from "next/navigation";
-import {block} from "sharp";
-import SocketClient from "@/src/app/components/SocketClient/SocketClient";
 
 function RoomPage() {
   const players = useSelector((state: RootState) => state.game.players);
@@ -27,9 +25,7 @@ function RoomPage() {
 
   useEffect(() => {
     players.forEach((player) => {
-      console.log(player.years)
       if (player.years.length === 0) {
-        console.log('Setting year for player:', player.fullName);
         const randomYear = Math.floor(Math.random() * (2026 - 1900 + 1)) + 1900;
         dispatch(initYearForPlayer({ playerId: player.id, year: `${randomYear}-01-01` }));
       }
@@ -91,6 +87,7 @@ function RoomPage() {
                 insertYear={randomSong.releaseDate}
                 activePlayerIndex={activePlayerIndex}
                 setActivePlayerIndex={setActivePlayerIndex}
+                roomId={null}
               />
             )}
           </Box>
@@ -127,8 +124,6 @@ function RoomPage() {
           </Typography>
         )}
       </Box>
-
-      <SocketClient />
     </div>
   );
 }

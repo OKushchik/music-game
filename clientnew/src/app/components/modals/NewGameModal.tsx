@@ -15,7 +15,6 @@ import Box from "@mui/material/Box";
 import Avatar from "@mui/material/Avatar";
 import Typography from "@mui/material/Typography";
 import { useGetAllUsers } from "@/src/services/apiHooks";
-import { User } from "@/src/models/models";
 import {addTrackId, setGamePlayers} from "@/src/store/slices/gameSlice";
 import {useRouter} from "next/navigation";
 import MenuItem from "@mui/material/MenuItem";
@@ -29,7 +28,7 @@ type CustomPlayer = {
 type CheckedPlayer = {
   id: string;
   fullName: string;
-  years?: string[]; // allow optional years locally
+  years?: string[];
 };
 
 interface NewGameModalProps {
@@ -43,27 +42,15 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
   const [isShowAddCustomPlayer, setIsShowAddCustomPlayer] = React.useState<boolean>(false);
   const [customPlayerName, setCustomPlayerName] = React.useState<string>('');
   const [trackId, setTrackId] = React.useState<string>('6tAdMSXECJTIWWP4GVpn83');
-  const [roomId, setRoomId] = React.useState<string | null>('');
-  const {createRoom} = useSocketClient();
-  const { usePlayersInRoom, joinRoom, connected, socketId  } = useSocketClient();
+  const { createRoom, usePlayersInRoom, joinRoom, addPlayListId, connected, socketId, roomId } = useSocketClient();
   const players = usePlayersInRoom();
 
-  const { data, loading, error } = useGetAllUsers();
+  const { loading, error } = useGetAllUsers();
   const [userName, setUserName] = useState<string>("");
 
   useEffect(() => {
-    if (isPrivate && !roomId) {
-      createRoom((id: string) => {
-        console.log('Room created with ID:', id);
-        setRoomId(id)
-      });
-    }
-  }, []);
-
-
-  useEffect(() => {
-    if (isPrivate && roomId && userName.trim() && socketId && connected) {
-      joinRoom(roomId, { id: socketId, name: userName });
+    if (isPrivate && !roomId  && socketId) {
+      createRoom();
     }
   }, [connected]);
 
@@ -94,15 +81,19 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
   }
 
   const handleStartGame = () => {
-    if (checkedUsers.length === 0) {
-      alert('Please select at least one player');
-      return;
+
+    if(!isPrivate){
+      dispatch(setGamePlayers(checkedUsers));
+      dispatch(addTrackId(trackId));
     }
 
-    dispatch(setGamePlayers(checkedUsers));
-    dispatch(addTrackId(trackId));
-    joinRoom(roomId!, { id: socketId!, name: userName });
-    isPrivate ? router.push(`/private-game/${roomId}?name=${encodeURIComponent(userName)}`) : router.push(`/game/room`);
+    if (isPrivate) {
+      const selectedTrackId = trackId || '6tAdMSXECJTIWWP4GVpn83';
+      addPlayListId(roomId!,selectedTrackId);
+      router.push(`/private-game/${roomId}?name=${encodeURIComponent(userName)}`);
+    } else {
+      router.push(`/game/room`);
+    }
   }
 
   const choseTrackList = (event: SelectChangeEvent<string>) => {
@@ -121,15 +112,22 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
         <Typography variant="h2" sx={{ fontSize: 24, marginBottom: 2, textAlign: 'center' }}>
           Start game
         </Typography>
-        <Input
-          type="text"
-          placeholder="Enter your name"
-          value={userName}
-          onChange={(e) => setUserName(e.target.value)}
-        />
-        <Typography variant="h3" sx={{ fontSize: 18, marginBottom: 2, textAlign: 'center' }}>
-          Users
-        </Typography>
+        {
+          isPrivate && (
+            <>
+              <Input
+                type="text"
+                placeholder="Enter your name"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+              />
+              <Typography variant="h3" sx={{ fontSize: 18, marginBottom: 2, textAlign: 'center' }}>
+                Users
+              </Typography>
+            </>
+          )
+        }
+
 
         {isPrivate && (
           <>
@@ -148,11 +146,6 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
         }}>
           {loading && <Typography>Loading...</Typography>}
           {error && <Typography>Error loading users</Typography>}
-          {/*<ul>*/}
-          {/*  {players?.map((player) => (*/}
-          {/*    <li key={player.id}>{player.name || player.id}</li>*/}
-          {/*  ))}*/}
-          {/*</ul>*/}
           {players?.map((player, index) => {
             const userId = player.id || `tmp-${index}`;
             const labelId = `checkbox-list-secondary-label-${userId}`;
@@ -204,10 +197,11 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
             }
           />
         }
-
-        <Button type="button" onClick={() => setIsShowAddCustomPlayer(prev => !prev)} sx={{marginTop: 2}}>
-          + Add custom player
-        </Button>
+        {!isPrivate && (
+          <Button type="button" onClick={() => setIsShowAddCustomPlayer(prev => !prev)} sx={{marginTop: 2}}>
+            + Add custom player
+          </Button>
+        )}
         <Typography variant="h3" sx={{ fontSize: 18, marginBottom: 2, marginTop: 2, textAlign: 'center' }}>
           Players
         </Typography>
@@ -224,7 +218,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
                     edge="end"
                     onClick={() => handleRemovePlayer(player.id)}
                   >
-                    <ClearIcon />
+                  <ClearIcon />
                   </IconButton>
                 }
               >
@@ -260,7 +254,6 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
         <Button
           type="submit"
           onClick={handleStartGame}
-          disabled={checkedUsers.length === 0}
           sx={{marginTop: 2}}
         >
           Start Game
