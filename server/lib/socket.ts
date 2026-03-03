@@ -209,10 +209,14 @@ export function initSocket(httpServer: http.Server) {
       const currentIndex = room.currentRound.activePlayerId
         ? room.players.findIndex(p => p.id === room.currentRound.activePlayerId)
         : -1;
-      const nextIndex = (currentIndex + 1) % room.players.length;
+
+      // Advance with wrap-around (handles currentIndex === -1)
+      const playersCount = room.players.length;
+      const nextIndex = (currentIndex + 1 + playersCount) % playersCount;
       const nextPlayer = room.players[nextIndex];
 
-      room.currentRound.activePlayerId = nextPlayer.id;
+      // Safely set active player id
+      room.currentRound.activePlayerId = nextPlayer ? nextPlayer.id : null;
 
       io?.to(roomId).emit('game_state', room.currentRound);
     });

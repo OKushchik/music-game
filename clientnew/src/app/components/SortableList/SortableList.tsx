@@ -102,12 +102,53 @@ export default function SortibleList({
   const [years, setYears] = useState<YearValue[]>([]);
   const { socket } = useSocket();
 
+  // Keep years in sync with the currently selected activePlayerIndex.
+  // If the index is out of bounds or player has no years, clear the years list.
   useEffect(() => {
-    const currentPlayer = players[activePlayerIndex];
+    const currentPlayer = players && players.length > 0 && players[activePlayerIndex];
     if (currentPlayer?.years) {
       setYears([...currentPlayer.years].sort((a: YearValue, b: YearValue) => toMs(a) - toMs(b)));
+    } else {
+      setYears([]);
     }
   }, [activePlayerIndex, players]);
+
+  // Listen for canonical game state from server and resolve active player index.
+  useEffect(() => {
+    if (!socket) return;
+
+    const onGameState = (currentRound: { activePlayerId?: string | null }) => {
+      const activeId = currentRound?.activePlayerId ?? null;
+      const idx = activeId ? players.findIndex((p) => p.id === activeId) : -1;
+      const resolvedIndex = idx >= 0 ? idx : players && players.length > 0 ? 0 : -1;
+
+      if (resolvedIndex >= 0) {
+        // set the active player index (can be functional or direct set)
+        setActivePlayerIndex(resolvedIndex);
+
+        // ensure years update immediately for the new active player
+        const player = players[resolvedIndex];
+        if (player?.years) {
+          setYears([...player.years].sort((a: YearValue, b: YearValue) => toMs(a) - toMs(b)));
+        } else {
+          setYears([]);
+        }
+      } else {
+        // no players available
+        setActivePlayerIndex(0);
+        setYears([]);
+      }
+    };
+
+    socket.on('game_state', onGameState);
+
+    // Request the current room state from server (harmless if server ignores it)
+    if (roomId) socket.emit('request_room_state', { roomId });
+
+    return () => {
+      socket.off('game_state', onGameState);
+    };
+  }, [socket, players, roomId, setActivePlayerIndex]);
 
   const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 8 } }));
 
@@ -148,6 +189,7 @@ export default function SortibleList({
         const nextIndex = prev + 1;
         return nextIndex < players.length ? nextIndex : 0;
       });
+      // if (socket && roomId) socket.emit('next_round', { roomId }); // notify server to advance
       return;
     }
 
@@ -168,7 +210,7 @@ export default function SortibleList({
       const nextIndex = prev + 1;
       return nextIndex < players.length ? nextIndex : 0;
     });
-
+    // if (socket && roomId) socket.emit('next_round', { roomId })
   }
   return (
     <div style={{ display: "grid", gap: 16, padding: 16 }}>
