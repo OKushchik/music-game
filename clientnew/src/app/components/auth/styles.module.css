@@ -1,0 +1,25 @@
+
+.form {
+  padding: 30px 25px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.form__title {
+  font-size: 32px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.form__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.form__buttons {
+  display: flex;
+  justify-content: right;
+}
