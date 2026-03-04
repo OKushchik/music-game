@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export function middleware_disabled(req: NextRequest) {
+export function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const token = req.cookies.get('access_token')?.value;
 
