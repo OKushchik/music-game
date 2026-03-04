@@ -96,7 +96,7 @@ src/
 ├── models/          # Mongoose моделі та схеми
 ├── routes/          # API маршрути
 ├── services/        # Зовнішні сервіси (Spotify)
-├── utils/           # Утиліти (middleware, token generation)
+├── utils/           # Утиліти (middleware_disabled, token generation)
 ├── database/        # MongoDB підключення
 └── index.ts         # Entry point
 ```
