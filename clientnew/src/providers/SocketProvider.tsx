@@ -23,19 +23,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     const storageKey = 'music_game_player_id';
-    try {
-      let existing = localStorage.getItem(storageKey);
-      if (!existing) {
-        existing = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-        localStorage.setItem(storageKey, existing);
-      }
-      setPlayerId(existing);
-    } catch {
-      setPlayerId(`${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`);
+    let existing = localStorage.getItem(storageKey);
+    if (!existing) {
+      localStorage.setItem(storageKey, crypto.randomUUID());
     }
-
+    setPlayerId(existing);
     const s = io("http://localhost:8080", { withCredentials: true });
     setSocket(s);
 

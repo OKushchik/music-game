@@ -14,11 +14,10 @@ import { authGuard } from "./utils/middleware";
 import http from "http";
 import { initSocket } from "./lib/socket";
 import RefreshToken from "./models/refreshToken";
-import {env} from "./utils/configService";
+import {checkEnvVariables, env} from "./utils/configService";
 
-if (!env.JWT_SECRET || !env.JWT_REFRESH_SECRET) {
-  throw new Error("JWT_SECRET OR JWT_REFRESH_SECRET is not defined in environment variables.");
-}
+
+checkEnvVariables();
 
 const app: Express = express();
 const PORT = Number(env.PORT) || 8080;
@@ -30,7 +29,7 @@ app.use(cookieParser());
 app.use(helmet());
 app.use(cors({ origin: CLIENT_URL, credentials: true }));
 
-cron.schedule('56 10 * * *', async () => {
+cron.schedule('10 12 * * *', async () => {
   const now = new Date();
   try {
     const result = await RefreshToken.deleteMany({ expiresAt: { $lt: now } });

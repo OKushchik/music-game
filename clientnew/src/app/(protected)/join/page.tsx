@@ -13,19 +13,7 @@ export default function Join() {
   const router = useRouter();
   const [gameId, setGameId] = useState<string>('');
   const [playerName, setPlayerName] = useState<string>('');
-  const { connected, joinRoom } = useSocketClient();
-
-  // useEffect(() => {
-  //   socket.emit("join_room", gameId);
-  //
-  //   socket.on("player_joined", id => {
-  //     console.log("player joined", id);
-  //   });
-  //
-  //   return () => {
-  //     socket.off("player_joined");
-  //   };
-  // }, [gameId]);
+  const { connected } = useSocketClient();
 
   const joinGame = () => {
     router.push(`/private-game/${gameId}?name=${encodeURIComponent(playerName)}`);

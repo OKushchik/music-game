@@ -8,12 +8,12 @@ export function useSocketClient() {
 
   const createRoom = () => {
     if (!socket) return;
-    console.log("Emitting create_room event to server");
     socket.emit("create_room");
   };
 
   useEffect(() => {
     if (!socket) return;
+
     const handleRoomCreated = ({ roomId: newRoomId }: { roomId: string }) => {
       setRoomId(newRoomId);
     };

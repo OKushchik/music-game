@@ -8,8 +8,8 @@ let io: Server | null = null;
 type Player = { id: string; name: string; years?: string[] };
 
 interface RoundState {
-  trackIndex: number | null; // index into playlist
-  insertYear: string | null; // ISO date string, e.g. "1999-01-01"
+  trackIndex: number | null;
+  insertYear: string | null;
   activePlayerId: string | null;
 }
 
@@ -81,29 +81,24 @@ export function initSocket(httpServer: http.Server) {
         return;
       }
 
-      // Match players by id only to avoid collisions on default names.
       const existingPlayer = room.players.find((player) => player.id === user.id);
 
       if (!existingPlayer) {
         const newPlayer: Player = {
           id: user.id,
-          name: typeof user.name === "string" && user.name.trim() ? user.name : "Player",
+          name: user.name ? user.name : "Player",
           years: [],
         };
         room.players.push(newPlayer);
-        console.log(`Added new player to room ${roomId}:`, newPlayer);
-        // If a round insertYear was already initialized, give it to this joining player
-        if (room.currentRound.insertYear && (!newPlayer.years || newPlayer.years.length === 0)) {
+        if (room.currentRound.insertYear && newPlayer.years?.length === 0) {
           newPlayer.years = [room.currentRound.insertYear];
         }
       } else {
-        // Ensure years exists, and update name if provided in the join payload
         if (!existingPlayer.years) existingPlayer.years = [];
         if (typeof user.name === 'string' && user.name.trim() && existingPlayer.name !== user.name) {
           console.log(`Updating name for player ${existingPlayer.id} from '${existingPlayer.name}' to '${user.name}'`);
           existingPlayer.name = user.name;
         }
-        // If a round insertYear exists and the existing player's years are empty, initialize them
         if (room.currentRound.insertYear && existingPlayer.years.length === 0) {
           existingPlayer.years = [room.currentRound.insertYear];
         }
@@ -115,8 +110,6 @@ export function initSocket(httpServer: http.Server) {
       }
 
       socket.join(roomId);
-
-      io?.to(roomId).emit("player_joined", socket.id);
       io?.to(roomId).emit("players_in_room", room.players);
       socket.emit("game_state", room.currentRound);
       socket.emit("room_info", { roomId, trackId: room.trackId });
@@ -195,31 +188,6 @@ export function initSocket(httpServer: http.Server) {
       console.log('User disconnected:', socket.id);
     });
 
-    socket.on('message', (payload) => {
-      console.log('Received message from client:', payload);
-      socket.emit('message', `Server received: ${payload}`);
-    });
-
-    socket.on('next_round', ({ roomId }) => {
-      const room = rooms.get(roomId);
-      if (!room) return;
-      if (!room.players.length) return;
-
-      // Determine current active index
-      const currentIndex = room.currentRound.activePlayerId
-        ? room.players.findIndex(p => p.id === room.currentRound.activePlayerId)
-        : -1;
-
-      // Advance with wrap-around (handles currentIndex === -1)
-      const playersCount = room.players.length;
-      const nextIndex = (currentIndex + 1 + playersCount) % playersCount;
-      const nextPlayer = room.players[nextIndex];
-
-      // Safely set active player id
-      room.currentRound.activePlayerId = nextPlayer ? nextPlayer.id : null;
-
-      io?.to(roomId).emit('game_state', room.currentRound);
-    });
   });
 
   return io;

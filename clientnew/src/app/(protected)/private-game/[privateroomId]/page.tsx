@@ -140,7 +140,7 @@ function PrivateRoomPage() {
     if (!connected) return;
     if (!socketId) return;
     if (!socket) return;
-    if (initialYear) return; // already initialized
+    if (initialYear) return;
 
     // Wait until we have the players list from server; if no players yet, don't init
     if (players.length === 0) return;
@@ -211,7 +211,7 @@ function PrivateRoomPage() {
                   activePlayerIndex={activePlayerIndex}
                   setActivePlayerIndex={setActivePlayerIndex}
                   roomId={roomId || ""}
-
+                  isActivePlayer={isActivePlayer}
                 />
               )}
               {!!sharedRound.insertYear && (
@@ -221,6 +221,7 @@ function PrivateRoomPage() {
                   activePlayerIndex={activePlayerIndex}
                   setActivePlayerIndex={setActivePlayerIndex}
                   roomId={roomId || ""}
+                  isActivePlayer={isActivePlayer}
                 />
               )}
             </Box>
