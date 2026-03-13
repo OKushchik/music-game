@@ -88,6 +88,7 @@ function RoomPage() {
                 activePlayerIndex={activePlayerIndex}
                 setActivePlayerIndex={setActivePlayerIndex}
                 roomId={null}
+                isActivePlayer={true}
               />
             )}
           </Box>
