@@ -116,6 +116,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({ isPrivate }) => {
           isPrivate && (
             <>
               <Input
+                sx={{width: "100%", marginBottom: 2}}
                 type="text"
                 placeholder="Enter your name"
                 value={userName}

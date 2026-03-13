@@ -4,7 +4,7 @@ export function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const token = req.cookies.get('access_token')?.value;
 
-  if (pathname.startsWith("/login") || pathname === "/") {
+  if (pathname.startsWith("/login") || pathname.startsWith("/register")) {
     return NextResponse.next();
   }
 

@@ -30,11 +30,10 @@ const cookieOptions = (_req: Request): CookieOptions => {
 };
 
 export const registerUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const { username, email, password, admin_key } = req.body;
 
     if (!username || !email || !password) {
-      return next(new AppError("username, email and password are required", 400));
+      throw new AppError("username, email and password are required", 400)
     }
 
     let assignedRole = Role.USER;
@@ -44,7 +43,7 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
 
     const existing = await User.findOne({ email });
     if (existing) {
-      return next(new AppError("User with this email already exists", 409));
+      throw new AppError("User with this email already exists", 409)
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -59,16 +58,17 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
 
     const userId = newUser._id?.toString() || newUser.id.toString();
 
-    const accessToken = generateAccessToken(
-      {
-        ...newUser.toObject(),
-        _id: userId,
-      }
-    );
-
+    // Create a session id and refresh token and persist it before setting the access token cookie
     const sessionId = randomUUID();
-    const refreshToken = generateRefreshToken(userId,sessionId);
+    const refreshToken = generateRefreshToken(userId, sessionId);
+    await saveRefreshToken(userId, refreshToken, sessionId);
 
+    const accessToken = generateAccessToken({
+      ...newUser.toObject(),
+      _id: userId,
+    });
+
+    // Set access token and session id cookies after refresh token is saved
     res.cookie("access_token", accessToken, cookieOptions(req));
 
 
@@ -77,8 +77,6 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
       secure: env.NODE_ENV === "production",
       sameSite: env.NODE_ENV === "production" ? "none" : "lax",
     });
-
-    await saveRefreshToken(userId, refreshToken,sessionId);
 
     res.status(201).json({
       success: true,
@@ -92,38 +90,37 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
         refreshToken: refreshToken,
       },
     });
-  } catch (e: any) {
-    return next(e);
-  }
 };
 
 export const loginUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
+
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return next(new AppError("email and password are required", 400));
+      throw new AppError("email and password are required", 400)
     }
 
     const user = await User.findOne({ email });
     if (!user) {
-      return next(new AppError("Invalid email or password", 401));
+      throw new AppError("Invalid email or password", 401)
     }
 
     const userId = user?.id?.toString() || user?._id?.toString();
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
-      return next(new AppError("Invalid email or password", 401));
+      throw new AppError("Invalid email or password", 401)
     }
+
+    // Create & persist refresh token before sending access token cookie (login flow)
+    const sessionId = randomUUID();
+    const refreshToken = generateRefreshToken(userId, sessionId);
+    await saveRefreshToken(userId, refreshToken, sessionId);
 
     const accessToken = generateAccessToken({
       ...user.toObject(),
       _id: userId,
     });
-
-    const sessionId = randomUUID();
-    const refreshToken = generateRefreshToken(userId,sessionId);
 
     res.cookie("access_token", accessToken, cookieOptions(req));
 
@@ -132,8 +129,6 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       secure: env.NODE_ENV === "production",
       sameSite: env.NODE_ENV === "production" ? "none" : "lax",
     });
-
-    await saveRefreshToken(userId, refreshToken,sessionId);
 
     res.status(200).json({
       success: true,
@@ -146,13 +141,9 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
         refreshToken: refreshToken,
       },
     });
-  } catch (e: any) {
-    return next(e);
-  }
 };
 
 export const logoutUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const token = req.cookies?.access_token;
     if (token && env.JWT_SECRET) {
       try {
@@ -181,21 +172,17 @@ export const logoutUser = async (req: Request, res: Response, next: NextFunction
     });
 
     res.status(200).json({ success: true, message: "Logged out", data: {} });
-  } catch (e: any) {
-    return next(new AppError("Logout failed", 500));
-  }
 };
 
 export const getCurrentUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     if (!req.user) {
-      return next(new AppError("Unauthorized", 401));
+      throw new AppError("Unauthorized", 401)
     }
 
     const userId = req.user?.id?.toString() || req.user?._id?.toString();
     const user = await User.findById(userId).select("-passwordHash");
     if (!user) {
-      return next(new AppError("User not found", 404));
+      throw new AppError("User not found", 404)
     }
 
     res.status(200).json({
@@ -203,66 +190,69 @@ export const getCurrentUser = async (req: Request, res: Response, next: NextFunc
       message: "Current user",
       data: user,
     });
-  } catch (e: any) {
-    return next(e);
-  }
 };
 
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
     const users = await User.find().select("-passwordHash");
     res.status(200).json({
       success: true,
       message: "All users",
       data: users,
     });
-  } catch (e: any) {
-    return next(e);
-  }
 }
 export const refreshAccessToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const { refreshToken } = req.body;
+     const { refreshToken } = req.body;
 
-    if (!refreshToken) {
-      return next(new AppError("Refresh token is required", 400));
-    }
+     if (!refreshToken) {
+       throw new AppError("Refresh token is required", 400)
+     }
 
-    const decoded = await jwt.verify(refreshToken, env.JWT_REFRESH_SECRET!) as any;
-    const userId = decoded?.id?.toString() || decoded?._id?.toString();
-    const sessionId = decoded?.sessionId;
+     const decoded = await jwt.verify(refreshToken, env.JWT_REFRESH_SECRET!) as any;
+     const userId = decoded?.id?.toString() || decoded?._id?.toString();
+     const sessionId = decoded?.sessionId;
 
-    if (!userId || !sessionId) return next(new AppError("Invalid refresh token", 401))
+     if (!userId || !sessionId) {
+       throw new AppError("Invalid refresh token", 401)
+     }
 
-    const tokenHash = hashToken(refreshToken);
 
-    const session = await getRefreshToken(tokenHash);
+   const tokenHash = await hashToken(refreshToken);
+     const refreshTokenFromDb = await getRefreshToken(tokenHash);
 
-    if (!session) {
-      return next(new AppError("Refresh token expired or invalid", 401));
-    }
+     if (!refreshTokenFromDb) {
+       throw new AppError("Refresh token expired or invalid", 401);
+     }
 
-    if (session.sessionId !== sessionId) {
-      return next(new AppError("Refresh token mismatch", 401));
-    }
+     if (refreshTokenFromDb.sessionId !== sessionId) {
+       throw new AppError("Refresh token mismatch", 401)
+     }
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return next(new AppError("User not found", 401));
-    }
+     const user = await User.findById(userId);
+     if (!user) {
+       throw new AppError("User not found", 401)
+     }
+
+    const newRefreshToken = generateRefreshToken(userId, sessionId);
+    await saveRefreshToken(userId, newRefreshToken, sessionId);
 
     const newAccessToken = generateAccessToken({
       ...user.toObject(),
       _id: userId,
     });
 
+    // Set new access token cookie (and re-set session cookie to refresh its flags/expiry)
     res.cookie("access_token", newAccessToken, cookieOptions(req));
+    res.cookie("session_id", sessionId, {
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+    });
 
     res.status(200).json({
       success: true,
       message: "Token refreshed",
+      data: {
+        refreshToken: newRefreshToken,
+      },
     });
-  } catch (e: any) {
-    return next(e);
-  }
 };

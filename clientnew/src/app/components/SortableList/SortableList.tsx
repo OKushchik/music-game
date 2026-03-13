@@ -91,12 +91,14 @@ export default function SortibleList({
   activePlayerIndex,
   setActivePlayerIndex,
   roomId,
+  isActivePlayer
 }: {
   players: any[];
   insertYear: YearValue;
   activePlayerIndex: number;
   setActivePlayerIndex: (index: number | ((prev: number) => number)) => void;
   roomId: string | null;
+  isActivePlayer: boolean;
 }) {
   const dispatch = useDispatch<AppDispatch>();
   const [years, setYears] = useState<YearValue[]>([]);
@@ -189,7 +191,6 @@ export default function SortibleList({
         const nextIndex = prev + 1;
         return nextIndex < players.length ? nextIndex : 0;
       });
-      // if (socket && roomId) socket.emit('next_round', { roomId }); // notify server to advance
       return;
     }
 
@@ -210,13 +211,15 @@ export default function SortibleList({
       const nextIndex = prev + 1;
       return nextIndex < players.length ? nextIndex : 0;
     });
-    // if (socket && roomId) socket.emit('next_round', { roomId })
   }
   return (
     <div style={{ display: "grid", gap: 16, padding: 16 }}>
       <DndContext sensors={sensors} onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
         <div style={{ display: "flex", flexDirection:"column", alignItems: "center", gap: 25 }}>
-          <DraggableYear />
+
+          {
+            isActivePlayer && <DraggableYear />
+          }
 
           <div style={{ display: "flex", gap: 8, overflowX: "auto", width: "600px", paddingBottom: '25px' }}>
             {gapIds.map((gapId, i) => (

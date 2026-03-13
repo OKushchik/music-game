@@ -12,3 +12,24 @@ export const env = {
   SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET,
   NODE_ENV: process.env.NODE_ENV || "development",
 }
+
+export const checkEnvVariables = () => {
+  const envVariables = [
+    'PORT',
+    'CLIENT_URL',
+    'MONGO_DB_KEY',
+    'JWT_SECRET',
+    'JWT_REFRESH_SECRET',
+    'ADMIN_KEY',
+    'SPOTIFY_URL',
+    'SPOTIFY_CLIENT_ID',
+    'SPOTIFY_CLIENT_SECRET',
+  ];
+
+  envVariables.forEach((key) => {
+    if (!process.env[key]) throw Error("Not enough env variables " + "'" + key + "'" + " is missing");
+  });
+}
+
+
+
